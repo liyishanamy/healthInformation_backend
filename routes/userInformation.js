@@ -2,23 +2,28 @@ const express = require('express')
 const router = express.Router()
 const bcrypt = require('bcrypt')
 const Users = require('../models/users')
+const Signin=require('./signin')
 
-router.get('/',async (req,res)=>{
+router.get('/', Signin.authenticateToken, async (req,res)=>{
     try{
         const users = await Users.find()
-        res.json(users)
+        console.log(users)
+        console.log(users.filter(user=>user.email === req.user.email))
+
+        res.json(users.filter(user=>user.email === req.user.email))
     }catch(err){
         res.status(500).json({message:err.message})
     }
 })
 
-router.get('/:id',getUsers,(req,res)=>{
+router.get('/:id',Signin.authenticateToken,(req,res)=>{
+    //res.send(req.params.id)
+
     res.send(res.user)
 
 })
 
 router.post('/', async (req,res)=>{
-
     const hashedPassword = await bcrypt.hash(req.body.password,10)
     console.log(hashedPassword)
     const user = new Users({
@@ -51,33 +56,59 @@ router.post('/', async (req,res)=>{
 
 })
 
-router.post('/users/login',async (req,res)=>{
-    const user = users.find(user=>user.email=req.body.email)
-    console.log(user)
-    if(user==null){
-        return res.status(400).send('Cannot find user')
-    }
-    try{
-        if(bcrypt.compare(req.body.password,user.password)){
-            res.status(200).send('Success')
-        }else {
-            res.status(401).send('Not allowed');
-        }
-    }catch{
-        res.status(500).send()
+router.put('/:id',getUsers, function (req,res){
+    var conditions = {_id:req.params.id}
+    Users.update(conditions,req.body)
+        .then(doc=>{
+            if(!doc){return res.status(404).end()}
+            return res.status(200).json(doc)
+        })
 
-    }
 })
 router.patch('/:id',getUsers,async (req,res)=>{
-    if(req.body.firstname!=null){
+    console.log(req.body.lastname)
+    if(!req.body.firstname){
         res.user.firstname = req.body.firstname
     }
-    if(req.body.email!=null){
+
+    if(!req.body.lastname){
+        console.log("lastname")
+        res.user.lastname = req.body.lastname
+    }
+    if(!req.body.gender){
+        res.user.gender = req.body.gender
+    }
+    if(req.body.street!==null){
+        res.user.street = req.body.street
+    }
+    if(req.body.city!==null){
+        res.user.city = req.body.city
+    }
+
+    if(req.body.state!==null){
+        res.user.state = req.body.state
+    }
+    if(req.body.postcode!==null){
+        res.user.postcode = req.body.postcode
+    }
+    if(req.body.invitation!==null){
+        res.user.invitation = req.body.invitation
+    }
+    if(req.body.birthday!==null){
+        res.user.birthday = req.body.birthday
+    }
+
+    if(req.body.email!==null){
         res.user.email=req.body.email
     }
+
+
     try{
+
        const updatedUser = await res.user.save()
+        console.log(res)
        res.json(updatedUser)
+
     }catch(err){
         res.status(400).json({message:err.message})
     }
