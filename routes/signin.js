@@ -20,9 +20,9 @@ router.post('/token',(req,res)=>{
     })
 })
 
-router.delete('/logout',(req,res)=>{
+router.delete('/logout', authenticateToken,(req,res)=>{
     refreshTokens = refreshTokens.filter(token=>token!==req.body.token)
-    res.sendStatus(204)
+    res.status(204).send("Refresh token is deleted")
 })
 
 
@@ -32,12 +32,11 @@ router.post('/login',async (req,res)=>{
    const user = await Users.find({email:req.body.email},null,{limit:1})
     console.log(user)
     if(user.length===0){
-        console.log(user)
+
         return res.status(401).send('Authentication failed')
     }
 
     const useremail={email:req.body.email}
-
     try{
         if(await bcrypt.compare(req.body.password,user[0].password)){
             const accessToken = generateAccessToken(useremail)
@@ -65,9 +64,7 @@ function generateAccessToken(user){
 function authenticateToken(req,res,next){
     console.log("authenticated")
     const authHeader =req.headers['authorization']
-    console.log("header",req.headers)
     const token = authHeader && authHeader.split(' ')[1]
-    console.log("token",token)
     if(token == null) return res.sendStatus(401)
     jwt.verify(token,process.env.ACCESS_TOKEN_SECRET,(err,user)=>{
 

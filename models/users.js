@@ -13,6 +13,10 @@ const userSchema = new mongoose.Schema({
       type:String,
         required:true
     },
+  role:{
+    type:String,
+    required:true
+  },
     street:{
         type:String,
         required:true
@@ -31,7 +35,7 @@ const userSchema = new mongoose.Schema({
     },
   invitation:{
     type:String,
-    required:true
+    required:false
   },
   birthday:{
     type:Date,
@@ -50,6 +54,11 @@ const userSchema = new mongoose.Schema({
     type:String,
     required:true
   },
+  patientList:{
+    type:Array,
+    required:false
+
+  }
 
 });
 

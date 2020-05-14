@@ -22,8 +22,18 @@ const signup = require('./routes/userInformation')
 app.use('/users',signup)
 
 
+
 //Signin
 const signin = require('./routes/signin')
 app.use('/',signin)
+
+
+// GetprofileInfo
+const userProfile = require('./routes/userProfile')
+app.use('/user',userProfile)
+
+//invite
+const invite = require("./routes/generateInvitationCode")
+app.use('/invite',invite)
 
 app.listen(3000,()=>console.log('server started'))

@@ -3,58 +3,129 @@ const router = express.Router()
 const bcrypt = require('bcrypt')
 const Users = require('../models/users')
 const Signin=require('./signin')
-
+const Invitation = require('../models/invitations')
+ObjectId = require('mongodb').ObjectID
+var mongoose = require('mongoose');
 router.get('/', Signin.authenticateToken, async (req,res)=>{
     try{
-        const users = await Users.find()
-        console.log(users)
-        console.log(users.filter(user=>user.email === req.user.email))
+        // Check the role of the users
+        const findUsers = await Users.find({"email":req.user["email"]})
+        const role = findUsers[0]["role"]
+        console.log(findUsers)
+        if (role === "doctor"){
+            console.log("doctorrrr")
+            const patients = findUsers[0]["patientList"]
+            console.log(patients)
+            Users.find({'email':{$in: patients}},function (err,docs) {
+                console.log(docs)
+                res.status(200).json(docs)
+            })
+            //const users = await Users.find()
 
-        res.json(users.filter(user=>user.email === req.user.email))
+
+        }if (role==="patient"){
+            console.log("patient")
+            res.status(403).send("You don't have permission")
+        }
+
+        //res.json(users.filter(user=>user.email === req.user.email))
     }catch(err){
         res.status(500).json({message:err.message})
     }
 })
-
-router.get('/:id',Signin.authenticateToken,(req,res)=>{
+/**
+router.get('/:id',Signin.authenticateToken,async (req,res)=>{
     //res.send(req.params.id)
-
-    res.send(res.user)
-
+    const finduser = await Users.find({"_id":req.params.id})
+    console.log(finduser[0])
+    if(finduser[0]["email"] === req.user["email"]){
+        res.status(200).json(finduser[0])
+    }else{
+        // no permission. If access toke does not match up
+        res.status(403).send("Unauthorized")
+    }
 })
+*/
 
 router.post('/', async (req,res)=>{
     const hashedPassword = await bcrypt.hash(req.body.password,10)
-    console.log(hashedPassword)
-    const user = new Users({
-        firstname:req.body.firstname,
-        lastname:req.body.lastname,
-        gender:req.body.gender,
-        street:req.body.street,
-        city:req.body.city,
-        state:req.body.state,
-        postcode:req.body.postcode,
-        invitation:req.body.invitation,
-        birthday:req.body.birthday,
-        email:req.body.email,
-        password:hashedPassword,
-        confirmedPassword:hashedPassword
+    var role = await req.body.role
+    var user;
+    if(role==="doctor"){
+        user = new Users({
+            firstname:req.body.firstname,
+            lastname:req.body.lastname,
+            gender:req.body.gender,
+            role:req.body.role,
+            street:req.body.street,
+            city:req.body.city,
+            state:req.body.state,
+            postcode:req.body.postcode,
+            birthday:req.body.birthday,
+            email:req.body.email,
+            password:hashedPassword,
+            confirmedPassword:hashedPassword,
+            patientList:[]
+        })}
+    if(role === "patient"){
+            user = new Users({
+                firstname:req.body.firstname,
+                lastname:req.body.lastname,
+                gender:req.body.gender,
+                role:req.body.role,
+                street:req.body.street,
+                city:req.body.city,
+                state:req.body.state,
+                postcode:req.body.postcode,
+                invitation:req.body.invitation,
+                birthday:req.body.birthday,
+                email:req.body.email,
+                password:hashedPassword,
+                confirmedPassword:hashedPassword
+            })
 
+        }
 
-    })
-    console.log(user)
+    const users = await Users.find({email:req.body.email},null,{limit:1})
+    console.log("user",user)
 
+    //const result = users.filter(user=>user.email === req.user.email)
+    //console.log("result",result)
+    console.log("users",users)
     try{
+        if(users.length!==0){
+            res.status(400).json({"message":"The user email has been already in use."})
+        }
+        else{
+            if (user["role"]==="doctor"){
+                console.log("this is a doctor, update invitation collections")
+            }
+            if (user["role"]==="patient"){
+                let patientEmail = user["email"]
+                let code = user["invitation"]
+                console.log(patientEmail)
+                const findDoctorEntry = await Invitation.find({invitationCode:code},null,{limit:1})
+                console.log("findDoctorEntry",findDoctorEntry)
+                console.log(findDoctorEntry[0]['doctorId'])
+                console.log(mongoose.Types.ObjectId.isValid(ObjectId(findDoctorEntry[0]['doctorId'])));
+                //const findDoctorId = await Users.findById(findDoctorEntry[0]['doctorId'])
+                //console.log("findDoctorId",findDoctorId)
+                Users.update({_id:findDoctorEntry[0]['doctorId']},{$addToSet:{patientList:[patientEmail]}},function (err,result) {
+                    if(err){
+                        console.log(err)
+                    }
 
-        const newUser = await user.save()
-        res.json(201).json(newUser)
+                })
+                console.log("this is a patient, add the id to the invitation collections")
+            }
+            const newUser = await user.save()
+            res.status(201).json(newUser)
+        }
     }catch(err){
-        res.status(400).json(err)
         res.status(400).json({message:err.message})
     }
-
-
 })
+/**
 
 router.put('/:id',getUsers, function (req,res){
     var conditions = {_id:req.params.id}
@@ -64,7 +135,7 @@ router.put('/:id',getUsers, function (req,res){
             return res.status(200).json(doc)
         })
 
-})
+})*/
 router.patch('/:id',getUsers,async (req,res)=>{
     console.log(req.body.lastname)
     if(!req.body.firstname){
