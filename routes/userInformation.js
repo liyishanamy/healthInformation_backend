@@ -24,13 +24,26 @@ router.get('/', Signin.authenticateToken, async (req,res)=>{
 
 
         }if (role==="patient"){
-            console.log("patient")
-            res.status(403).send("You don't have permission")
+
+            res.status(403).json({message:"You don't have permission"})
         }
 
         //res.json(users.filter(user=>user.email === req.user.email))
     }catch(err){
         res.status(500).json({message:err.message})
+    }
+})
+
+router.get('/totalPatients', Signin.authenticateToken, async (req,res)=> {
+    const findUsers = await Users.find({"email":req.user["email"]})
+    const role = findUsers[0]["role"]
+    console.log(findUsers)
+    if (role === "doctor"){
+        const patients = findUsers[0]["patientList"]
+        console.log(patients.length)
+        res.status(200).json({totalPatients:patients.length})
+    }if (role==="patient"){
+        res.status(403).json({message:"You don't have permission"})
     }
 })
 /**

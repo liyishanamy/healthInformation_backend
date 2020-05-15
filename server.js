@@ -21,7 +21,9 @@ app.use(express.json())
 const signup = require('./routes/userInformation')
 app.use('/users',signup)
 
-
+// Reset password
+const resetPassword = require('./routes/resetPassword')
+app.use('resetPassword',resetPassword)
 
 //Signin
 const signin = require('./routes/signin')
@@ -35,5 +37,9 @@ app.use('/user',userProfile)
 //invite
 const invite = require("./routes/generateInvitationCode")
 app.use('/invite',invite)
+
+//Patient daily update
+const dailyUpdate = require("./routes/dailyUpdate")
+app.use('/healthStatus', dailyUpdate)
 
 app.listen(3000,()=>console.log('server started'))

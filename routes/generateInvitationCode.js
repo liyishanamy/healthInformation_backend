@@ -23,9 +23,6 @@ router.post('/:id', Signin.authenticateToken, async (req,res)=>{
 
     }else{
         res.status(403).json({"message":"You do not have permission"})
-
-
-
     }
 
 })
