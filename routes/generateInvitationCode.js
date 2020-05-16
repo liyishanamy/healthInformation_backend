@@ -8,7 +8,6 @@ ObjectId = require('mongodb').ObjectID
 // middleware of doctor signup process
 // Only doctor can call this
 router.post('/:id', Signin.authenticateToken, async (req,res)=>{
-
     const findUsers = await Users.find({"email":req.user["email"]},null,{limit:1})
     const requestPerson = findUsers[0]["_id"]
 

@@ -42,6 +42,10 @@ const userSchema = new mongoose.Schema({
     required:true,
     default:Date.now
   },
+  age:{
+    type:Number,
+    required:true
+  },
   email:{
     type:String,
     required:true
@@ -58,6 +62,11 @@ const userSchema = new mongoose.Schema({
     type:Array,
     required:false
 
+  },
+  createdDate:{
+    type:Array,
+    required:true,
+    default: Date.now
   }
 
 });

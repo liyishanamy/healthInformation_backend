@@ -42,7 +42,7 @@ router.get('/:id',Signin.authenticateToken, async (req,res)=> {
                 const findDate = await HealthStatus.find({Date:{$gte:date_from}})
                 res.status(200).json(findDate)
             }
-            if(date_from!==null && date_to!==0){
+            if(date_from!==undefined && date_to!==undefined){
                 const findDate = await HealthStatus.find({Date:{$gte:date_from,$lte:date_to}})
                 res.status(200).json(findDate)
             }else{
