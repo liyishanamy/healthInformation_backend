@@ -6,10 +6,27 @@ const Signin=require('./signin')
 const Invitation = require('../models/invitations')
 ObjectId = require('mongodb').ObjectID
 var mongoose = require('mongoose');
-router.get('/', Signin.authenticateToken, async (req,res)=> {
+router.get('/', Signin.authenticateToken, paginatedResults(Users), async (req,res)=> {
+    try {
+        if(res.patientData === "You do not have permission"){
+            res.status(403).json({"message":"You do not have permission"})
+        }else{
+            res.status(200).json(res.patientData)
+        }
 
+
+
+
+        //res.json(users.filter(user=>user.email === req.user.email))
+    } catch (err) {
+        res.status(500).json({message: err.message})
+    }
+})
+/**
+router.get('/', Signin.authenticateToken, paginatedResults(Users), async (req,res)=> {
     try {
         // Check the role of the users
+        console.log("res.paginatedResults",res.paginatedResults)
         const findUsers = await Users.find({"email": req.user["email"]})
         const role = findUsers[0]["role"]
         console.log(findUsers)
@@ -23,7 +40,6 @@ router.get('/', Signin.authenticateToken, async (req,res)=> {
                         // gender = female
                         var patientData = docs.filter(function (data) {
                             return data.gender==="female"
-
                         })
                     }else if (filterGender==='1'){
                         // gender = male
@@ -35,17 +51,12 @@ router.get('/', Signin.authenticateToken, async (req,res)=> {
                         var patientData = docs.filter(function (data) {
                             return data.gender==="other"
                         })
-
                     }
                     res.status(200).json(patientData)
-                }else{
+                }else{// If no query is specified
                     res.status(200).json(docs)
 
                 }
-
-
-
-
 
             })
         }
@@ -57,7 +68,7 @@ router.get('/', Signin.authenticateToken, async (req,res)=> {
     } catch (err) {
         res.status(500).json({message: err.message})
     }
-})
+})*/
 /**
 router.get('/', Signin.authenticateToken, async (req,res)=>{
     try{
@@ -99,7 +110,7 @@ router.get('/totalPatients', Signin.authenticateToken, async (req,res)=> {
     }
 })
 
-/**
+
 // Get the gender=0,1,2 number(male,female,other)
 router.get('/gender',  Signin.authenticateToken, async (req,res)=>{
 
@@ -120,12 +131,12 @@ router.get('/gender',  Signin.authenticateToken, async (req,res)=>{
             var other = docs.filter(function (data) {
                 return data.gender==="other"
             })
-            res.status(200).json({"female":female,"male":male,"other":other})
+            res.status(200).json({"female":female.length,"male":male.length,"other":other.length})
         })
     }if (role==="patient"){
         res.status(403).json({message:"You don't have permission"})
     }
-})*/
+})
 
 router.get('/age',Signin.authenticateToken, async (req,res)=>{
     const findUsers = await Users.find({"email":req.user["email"]})
@@ -326,22 +337,106 @@ router.delete('/:id',getUsers, async (req,res)=>{
     }
 })
 
-async function getUsers(req,res,next){
+async function getUsers(req,res,next) {
     let user;
-    try{
+    try {
         user = await Users.findById(req.params.id)
         console.log(user)
-        if (user ==null){
-            return res.status(404).json({message:"cannot find user"})
+        if (user == null) {
+            return res.status(404).json({message: "cannot find user"})
         }
 
-    } catch(err){
-        return res.status(500).json({message:err.message})
+    } catch (err) {
+        return res.status(500).json({message: err.message})
     }
     res.user = user;
     next();
 
-    }
+}
+
+
+
+function paginatedResults(model) {
+    return async (req, res, next) => {
+        const page = parseInt(req.query.page)
+        const limit = parseInt(req.query.limit)
+        console.log(page)
+        console.log(limit)
+        const startIndex = (page - 1) * limit
+        const endIndex = page * limit
+
+        const results = {}
+
+        if (endIndex < await model.countDocuments().exec()) {
+            results.next = {
+                page: page + 1,
+                limit: limit
+            }
+        }
+        if (startIndex > 0) {
+            results.previous = {
+                page: page - 1,
+                limit: limit
+            }
+        }
+
+        const findUsers = await Users.find({"email": req.user["email"]})
+        const role = findUsers[0]["role"]
+        var patientData;
+
+        var filterGender = req.query["gender"]
+        if (role === "doctor") {
+            const patients = findUsers[0]["patientList"]
+            if (filterGender !== undefined) {
+
+                if (filterGender === '0') {
+
+                    patientData= await model.find({email: {$in: patients},gender:"female"},null,{limit:limit,skip:startIndex})
+
+                } else if (filterGender === '1') {
+                        // gender = male
+                    patientData= await model.find({email: {$in: patients},gender:"male"},null,{limit:limit,skip:startIndex})
+                } else if (filterGender === '2') {
+                    // gender = other
+                    patientData= await model.find({email: {$in: patients},gender:"other"},null,{limit:limit,skip:startIndex})
+                }
+
+                }
+            else {// If no query is specified
+                console.log("no gender query")
+                //patientData= await model.find({'email': {$in: patients}}).limit(limit).skip(startIndex)
+                patientData= await model.find({email: {$in: patients}},null,{limit:limit,skip:startIndex})
+            }
+            }
+        if(role==="patient"){
+            patientData="You do not have permission"
+        }
+        console.log(patientData)
+
+
+
+            //200 case
+            try {
+
+
+                res.patientData= patientData
+                next()
+            } catch (e) {
+                res.status(500).json({message: e.message})
+            }
+        }
+
+
+
+
+        }
+
+
+
+
+
+
+
 
 
 
