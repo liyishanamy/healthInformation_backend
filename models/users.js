@@ -61,7 +61,10 @@ const userSchema = new mongoose.Schema({
   patientList:{
     type:Array,
     required:false
-
+  },
+  myDoctor:{
+    type:String,
+    required:false
   },
   createdDate:{
     type:Array,

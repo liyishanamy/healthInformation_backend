@@ -14,9 +14,6 @@ router.get('/', Signin.authenticateToken, paginatedResults(Users), async (req,re
             res.status(200).json(res.patientData)
         }
 
-
-
-
         //res.json(users.filter(user=>user.email === req.user.email))
     } catch (err) {
         res.status(500).json({message: err.message})
@@ -114,7 +111,6 @@ router.get('/totalPatients', Signin.authenticateToken, async (req,res)=> {
 // Get the gender=0,1,2 number(male,female,other)
 router.get('/gender',  Signin.authenticateToken, async (req,res)=>{
 
-    console.log(gender)
     const findUsers = await Users.find({"email":req.user["email"]})
     const role = findUsers[0]["role"]
     if (role === "doctor"){
@@ -148,20 +144,15 @@ router.get('/age',Signin.authenticateToken, async (req,res)=>{
     if (role === "doctor"){
         Users.find({'email':{$in: patients}},async function (err,docs) {
             console.log(docs)
-
             if (age_from!==undefined && age_to===undefined){
                 const findAge = docs.filter(function (data) {
                     return data.age>=age_from})
-                //const findAge = await docs.find({age:{$gte:age_from}})
-                //console.log(findAge)
                 res.status(200).json(findAge)
             }
             if(age_from!==undefined && age_to!==undefined){
                 if (age_to>age_from){
                     const findAge = docs.filter(function (data) {
                         return data.age>=age_from && data.age<=age_to})
-                    //const findAge = await docs.find({age:{$gte:age_from,$lte:age_to}})
-                    console.log(findAge)
                     res.status(200).json(findAge)
                 }else{
                     res.status(400).json({message:"wrong format"})
@@ -172,22 +163,20 @@ router.get('/age',Signin.authenticateToken, async (req,res)=>{
 
             }})}
 
-
     if (role==="patient"){
         res.status(403).json({message:"You don't have permission"})
     }
 })
 
-router.post('/', async (req,res)=>{
+router.post('/signup', async (req,res)=>{
     const hashedPassword = await bcrypt.hash(req.body.password,10)
     var role = await req.body.role
     var user;
     let birthday = req.body.birthday
-    console.log(Date.now())
     let ageDif = Date.now()-Date.parse(birthday);
     var ageDate = new Date(ageDif)
     var userAge = Math.abs(ageDate.getUTCFullYear()-1970)
-    console.log(userAge)
+
     if(role==="doctor"){
         user = new Users({
             firstname:req.body.firstname,
@@ -228,9 +217,6 @@ router.post('/', async (req,res)=>{
         }
 
     const users = await Users.find({email:req.body.email},null,{limit:1})
-    console.log("user",user)
-
-    console.log("users",users)
     try{
         // Check email existence
         if(users.length!==0){
@@ -245,16 +231,17 @@ router.post('/', async (req,res)=>{
             if (user["role"]==="patient"){
                 let patientEmail = user["email"]
                 let code = user["invitation"]
-                console.log(patientEmail)
                 const findDoctorEntry = await Invitation.find({invitationCode:code},null,{limit:1})
                 console.log(findDoctorEntry)
                 if (findDoctorEntry.length ===0){
-                    res.status(404).json({message:"The doctor invitation code does not exist"})
+                    res.status(404).json({message:"The doctor invitation code is not valid"})
                 }else{
                     Users.update({_id:findDoctorEntry[0]['doctorId']},{$addToSet:{patientList:[patientEmail]}},function (err,result) {
                         if(err){
                             console.log(err)
                         }})
+                    user["myDoctor"]=findDoctorEntry[0]['doctorId']
+                    console.log(user["myDoctor"])
                     const newUser = await user.save()
                     res.status(201).json(newUser)
                 }
@@ -267,18 +254,7 @@ router.post('/', async (req,res)=>{
     }
 })
 
-router.get('/gender')
-/**
 
-router.put('/:id',getUsers, function (req,res){
-    var conditions = {_id:req.params.id}
-    Users.update(conditions,req.body)
-        .then(doc=>{
-            if(!doc){return res.status(404).end()}
-            return res.status(200).json(doc)
-        })
-
-})*/
 router.patch('/:id',getUsers,async (req,res)=>{
     console.log(req.body.lastname)
     if(!req.body.firstname){
@@ -355,7 +331,6 @@ async function getUsers(req,res,next) {
 }
 
 
-
 function paginatedResults(model) {
     return async (req, res, next) => {
         const page = parseInt(req.query.page)
@@ -382,6 +357,7 @@ function paginatedResults(model) {
 
         const findUsers = await Users.find({"email": req.user["email"]})
         const role = findUsers[0]["role"]
+
         var patientData;
 
         var filterGender = req.query["gender"]
@@ -402,6 +378,8 @@ function paginatedResults(model) {
                 }
 
                 }
+
+
             else {// If no query is specified
                 console.log("no gender query")
                 //patientData= await model.find({'email': {$in: patients}}).limit(limit).skip(startIndex)

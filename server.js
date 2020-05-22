@@ -1,9 +1,8 @@
 const express =require('express')
-const flash = require('express-flash')
-const session = require('express-session')
+const app=express()
 
 require('dotenv').config()
-const app=express()
+
 const mongoose =require('mongoose')
 const cors = require('cors')
 
@@ -17,6 +16,8 @@ db.once('open',()=>console.log("connected to db"))
 
 app.use(cors())
 app.use(express.json())
+
+
 //Singup
 const signup = require('./routes/userInformation')
 app.use('/users',signup)

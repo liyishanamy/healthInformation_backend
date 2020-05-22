@@ -5,17 +5,26 @@ const healthStatusSchema = new mongoose.Schema({
       type:String,
       required:true
     },
+    patientName:{
+        type:String,
+        required:true,
+    },
     temperature:{
-        type: String,
+        type: Number,
         required:true
     },
     symptom:{
         type: Array,
         required:true
     },
+    daysOfNoSymptom:{
+        type:Number,
+        required:true
+    },
     Date:{
         type:Date,
-        required:true
+        required:true,
+        default:Date.now()
     }
 });
 
