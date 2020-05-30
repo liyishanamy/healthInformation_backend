@@ -70,6 +70,10 @@ const userSchema = new mongoose.Schema({
     type:Array,
     required:true,
     default: Date.now
+  },
+  phone:{
+    type:String,
+    required:true
   }
 
 });

@@ -4,36 +4,21 @@ const Invitation = require('../models/invitations')
 const Signin=require('./signin')
 const Users = require('../models/users')
 var mongoose = require('mongoose');
+const bcrypt = require('bcrypt')
 ObjectId = require('mongodb').ObjectID
 
-router.post('/resetPassword', async (req,res)=>{
-    Users.findOne({email:req.body.email}).select().exec(function (err,user) {
-        if (err){
-            res.json({success:false,message:err})
-        }
-        else{
-            if(!user){
-                res.status(404).json({success:false,message:'Email was not found'})
-            }else{
-                /**
-                var email = {
-                    from :'Health Track Team',
-                    to : user.email,
-                    subject: 'Reset Password',
-                    text: "Hello" + user.name+', you recently requested a new account activation link http://localhost:8000',
-                    html:'<h4><b>Reset Password</b></h4>'
-
-                };
-                client.sendMail(email,function (err,info) {
-                    if(err) console.log(err)
-
-                })*/
-                res.status(200).json({success:true,message:'Username has been sent to the e-mail'})
+router.put('/', Signin.authenticateToken, async (req,res)=>{
+    const user = req.user['email'];
+    const hashedPassword = await bcrypt.hash(req.body.password,10)
+    var hashedBody = {"password":hashedPassword,"confirmedPassword":hashedPassword}
+    conditions = {email:user}
+    Users.update(conditions, hashedBody)
+        .then(doc => {
+            if (!doc) {
+                return res.status(404).end()
             }
-        }
-
-    })
-
+            return res.status(200).json({"message":"Your password has been updated!"})
+        })
 })
 
 module.exports = router;

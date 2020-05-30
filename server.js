@@ -24,7 +24,7 @@ app.use('/users',signup)
 
 // Reset password
 const resetPassword = require('./routes/resetPassword')
-app.use('resetPassword',resetPassword)
+app.use('/resetPassword',resetPassword)
 
 //Signin
 const signin = require('./routes/signin')
@@ -42,5 +42,10 @@ app.use('/invite',invite)
 //Patient daily update
 const dailyUpdate = require("./routes/dailyUpdate")
 app.use('/healthStatus', dailyUpdate)
+
+// Security questions setting
+const securityQuestions = require("./routes/securityQuestions")
+app.use('/security-questions',securityQuestions)
+
 
 app.listen(3000,()=>console.log('server started'))

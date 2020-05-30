@@ -54,8 +54,7 @@ router.post('/login',async (req,res)=>{
 })
 
 function generateAccessToken(user){
-    return jwt.sign(user,process.env.ACCESS_TOKEN_SECRET,{expiresIn: '60s'})
-
+    return jwt.sign(user,process.env.ACCESS_TOKEN_SECRET,{expiresIn: '600s'})
 }
 
 function authenticateToken(req,res,next){
@@ -72,3 +71,4 @@ function authenticateToken(req,res,next){
 
 module.exports = router;
 module.exports.authenticateToken=authenticateToken;
+module.exports.generateAccessToken=generateAccessToken;

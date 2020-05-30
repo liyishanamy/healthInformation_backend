@@ -110,7 +110,6 @@ router.get('/totalPatients', Signin.authenticateToken, async (req,res)=> {
 
 // Get the gender=0,1,2 number(male,female,other)
 router.get('/gender',  Signin.authenticateToken, async (req,res)=>{
-
     const findUsers = await Users.find({"email":req.user["email"]})
     const role = findUsers[0]["role"]
     if (role === "doctor"){
@@ -188,6 +187,7 @@ router.post('/signup', async (req,res)=>{
             state:req.body.state,
             postcode:req.body.postcode,
             birthday:req.body.birthday,
+            phone:req.body.phone,
             age:userAge,
             email:req.body.email,
             password:hashedPassword,
@@ -196,7 +196,6 @@ router.post('/signup', async (req,res)=>{
         })}
     if(role === "patient"){
         //check Invitation code validation, if not valid, return 400 error
-
             user = new Users({
                 firstname:req.body.firstname,
                 lastname:req.body.lastname,
@@ -206,6 +205,7 @@ router.post('/signup', async (req,res)=>{
                 city:req.body.city,
                 state:req.body.state,
                 postcode:req.body.postcode,
+                phone:req.body.phone,
                 invitation:req.body.invitation,
                 birthday:req.body.birthday,
                 age:userAge,
