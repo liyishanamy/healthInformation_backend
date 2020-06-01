@@ -3,7 +3,7 @@ const router = express.Router()
 const Users = require('../models/users')
 const Signin=require('./signin')
 const security = require('../models/securityQuestions')
-const jwt = require('jsonwebtoken')
+
 // set the security questions
 router.post('/',Signin.authenticateToken,async (req,res)=>{
     var findUsers =  await Users.find({"email":req.user["email"]},null,{limit:1})
@@ -30,6 +30,19 @@ router.post('/',Signin.authenticateToken,async (req,res)=>{
             res.status(400).json({message:"bad request"})
         }
     }
+})
+// Get the security questions
+router.get('/:id',async (req,res)=>{
+    console.log(req.params.id)
+    var findUsers =  await security.find({"userId":req.params.id})
+    console.log(findUsers)
+    if(findUsers.length===1){
+        res.status(200).json({question1: findUsers[0].question1["question_1"],question2: findUsers[0].question2["question_2"],
+            question3: findUsers[0].question3["question_3"]})
+    }else if(findUsers.length===0){
+        res.status(404).json({message:"Cannot find the user"})
+    }
+
 })
 
 // answer the security questions

@@ -224,9 +224,22 @@ router.post('/signup', async (req,res)=>{
         }
         else{
             if(user["role"]==="doctor"){
-                const newUser = await user.save()
-                res.status(201).json(newUser)
-
+                await user.save()
+                res.status(201).json({
+                    firstname:req.body.firstname,
+                    lastname:req.body.lastname,
+                    gender:req.body.gender,
+                    role:req.body.role,
+                    street:req.body.street,
+                    city:req.body.city,
+                    state:req.body.state,
+                    postcode:req.body.postcode,
+                    birthday:req.body.birthday,
+                    phone:req.body.phone,
+                    age:userAge,
+                    email:req.body.email,
+                    patientList:[]
+                })
             }
             if (user["role"]==="patient"){
                 let patientEmail = user["email"]
@@ -242,12 +255,23 @@ router.post('/signup', async (req,res)=>{
                         }})
                     user["myDoctor"]=findDoctorEntry[0]['doctorId']
                     console.log(user["myDoctor"])
-                    const newUser = await user.save()
-                    res.status(201).json(newUser)
+                    await user.save()
+                    res.status(201).json({
+                        firstname:req.body.firstname,
+                        lastname:req.body.lastname,
+                        gender:req.body.gender,
+                        role:req.body.role,
+                        street:req.body.street,
+                        city:req.body.city,
+                        state:req.body.state,
+                        postcode:req.body.postcode,
+                        phone:req.body.phone,
+                        invitation:req.body.invitation,
+                        birthday:req.body.birthday,
+                        age:userAge,
+                        email:req.body.email})
                 }
-
             }
-
         }
     }catch(err){
         res.status(400).json({message:err.message})

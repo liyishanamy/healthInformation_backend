@@ -7,14 +7,12 @@ var mongoose = require('mongoose');
 ObjectId = require('mongodb').ObjectID
 // middleware of doctor signup process
 // Only doctor can call this
-router.post('/:id', Signin.authenticateToken, async (req,res)=>{
+router.post('/', Signin.authenticateToken, async (req,res)=>{
     const findUsers = await Users.find({"email":req.user["email"]},null,{limit:1})
-    const requestPerson = findUsers[0]["_id"]
-
-
-    if (requestPerson.equals(ObjectId(req.params.id))){
+    const requestPerson = findUsers[0]["role"]
+    if (requestPerson ==='doctor'){
         const invite = new Invitation({
-            doctorId:req.params.id,
+            doctorId:findUsers[0]['_id'],
             invitationCode:Math.random().toString(36).substring(7)
         })
         const newInvitationCode = await invite.save()

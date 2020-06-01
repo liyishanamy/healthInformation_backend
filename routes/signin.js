@@ -32,18 +32,28 @@ router.post('/login',async (req,res)=>{
    const user = await Users.find({email:req.body.email},null,{limit:1})
     console.log(user)
     if(user.length===0){
-
         return res.status(401).json({'message':'Authentication failed'})
     }
-
     const useremail={email:req.body.email}
     try{
         if(await bcrypt.compare(req.body.password,user[0].password)){
             const accessToken = generateAccessToken(useremail)
             const refreshToken = jwt.sign(useremail,process.env.REFRESH_TOKEN_SECRET)
             refreshTokens.push(refreshToken)
-            res.status(200).json({accessToken:accessToken, refreshToken:refreshToken})
-
+            // Get the user information
+            const findUser = await Users.find({"email":req.body.email})
+            console.log(findUser)
+            const user = findUser[0]
+            if(user['role']==='doctor'){
+                res.status(200).json({accessToken:accessToken, refreshToken:refreshToken,email:req.body.email,firstname:user['firstname'],
+                lastname:user['lastname'],gender:user['gender'],role:user['role'],street:user['street'],city:user['city'],state:user['state'],
+                postcode:user['postcode'],birthday:user['birthday'],age:user['age'],patientList:user['patientList'],createdDate:user['createdDate']})
+            }
+            else if(user['role'] ==='patient'){
+                res.status(200).json({accessToken:accessToken, refreshToken:refreshToken,email:req.body.email,firstname:user['firstname'],
+                    lastname:user['lastname'],gender:user['gender'],role:user['role'],invitation:user['invitation'],street:user['street'],city:user['city'],state:user['state'],
+                    postcode:user['postcode'],birthday:user['birthday'],age:user['age'],createdDate:user['createdDate'],myDoctor:user['myDoctor']})
+            }
         }else {
             res.status(401).json({'message':'Authentication failed'});
         }
