@@ -4,6 +4,7 @@ const HealthStatus = require('../models/healthStatus')
 const Invitation = require('../models/invitations')
 const Signin = require('./signin')
 const Users = require('../models/users')
+const patientsNotification = require('../models/patientsNotification')
 var mongoose = require('mongoose');
 //const rateLimit = require("express-rate-limit");
 ObjectId = require('mongodb').ObjectID
@@ -19,16 +20,19 @@ ObjectId = require('mongodb').ObjectID
 router.post('/', Signin.authenticateToken, async (req, res) => {
     const findUsers = await Users.find({"email": req.user["email"]}, null, {limit: 1})
     const requestPerson = findUsers[0]["_id"]
-    console.log(findUsers)
     const findPatientId = findUsers[0]
-
+    var recentRecord = await HealthStatus.find({patientId: req.body.patientId}).sort({"Date": -1}).limit(1)
+    console.log("recentRecord",recentRecord[0]['daysOfNoSymptom'])
+    // Check to see if the patient has no symptom for more than 14 days
 
     if (findUsers == null) {
         return res.status(404).json({message: "cannot find user"})
     }
+
     if (requestPerson.equals(ObjectId(req.body.patientId))) {
         // Check last health status record
         var recentRecord = await HealthStatus.find({patientId: req.body.patientId}).sort({"Date": -1}).limit(1)
+        console.log("recentRecord",recentRecord)
 
         if (recentRecord.length === 0) {
             var updatedDays;
@@ -49,15 +53,35 @@ router.post('/', Signin.authenticateToken, async (req, res) => {
             })
             const newDayUpdate = await dailyUpdate.save()
             res.status(201).json(newDayUpdate)
-        } else if (recentRecord.length === 1 && recentRecord[0]["Date"].setHours(0, 0, 0, 0) !== new Date().setHours(0, 0, 0, 0)) {
+        }if (recentRecord.length === 1 && recentRecord[0]["Date"].setHours(0, 0, 0, 0) !== new Date().setHours(0, 0, 0, 0)) {
             console.log("we do not have record today")
             var updatedDays;
             if (req.body.temperature < 37 && req.body.symptom.length === 0) {
                 // get better
                 updatedDays = recentRecord[0]['daysOfNoSymptom'] + 1
+                if(updatedDays>=14){
+                    const filterPatient = await patientsNotification.find({userId:req.body.patientId})
+                    const notification = new patientsNotification({
+                        userId: req.body.patientId,
+                        email: findUsers[0]['email'],
+                        registrationDate:findUsers[0]['createdDate'],
+                        noSymptomsDays:updatedDays
+                    })
+                    console.log("here",filterPatient)
+                    if(filterPatient.length!==0){
+                        await patientsNotification.deleteOne({"userId": ObjectId(req.body.patientId)})
+                        await notification.save()
+
+                    }else if(filterPatient.length===0){
+                        await notification.save()
+                    }
+                }
             } else {
                 // get worse
                 updatedDays = 0
+
+                await patientsNotification.deleteOne({"userId": ObjectId(req.body.patientId)})
+
             }
             const dailyUpdate = new HealthStatus({
                 patientId: req.body.patientId,
@@ -69,23 +93,39 @@ router.post('/', Signin.authenticateToken, async (req, res) => {
             })
             const newDayUpdate = await dailyUpdate.save()
             res.status(201).json(newDayUpdate)
-        } else if (recentRecord.length === 1 && recentRecord[0]["Date"].setHours(0, 0, 0, 0) === new Date().setHours(0, 0, 0, 0)) {
-            console.log(req.body)
-
-            console.log("findBoth",recentRecord)
+        } if (recentRecord.length === 1 && recentRecord[0]["Date"].setHours(0, 0, 0, 0) === new Date().setHours(0, 0, 0, 0)) {
 
             const find2 = await HealthStatus.find({"_id": recentRecord[0]["_id"]})
-            console.log("find2",find2)
-
             var deleteEntry = await HealthStatus.deleteOne({"_id": ObjectId(recentRecord[0]["_id"])})
             var recentRecord = await HealthStatus.find({patientId: req.body.patientId}).sort({"Date": -1}).limit(1)
             if (req.body.temperature > 37 || req.body.symptom.length !== 0 ) {
                 // get worse
                 updatedDays = 0
 
+                await patientsNotification.deleteOne({"userId": ObjectId(req.body.patientId)})
+
+
             } else {
                 // get better
                 updatedDays = recentRecord[0]['daysOfNoSymptom'] + 1
+
+                if(updatedDays>=14){
+                    const filterPatient = await patientsNotification.find({userId:req.body.patientId})
+                    const notification = new patientsNotification({
+                        userId: req.body.patientId,
+                        email: findUsers[0]['email'],
+                        registrationDate:findUsers[0]['createdDate'],
+                        noSymptomsDays:updatedDays
+                    })
+                    console.log("here",filterPatient)
+                    if(filterPatient.length!==0){
+                        await patientsNotification.deleteOne({"userId": ObjectId(req.body.patientId)})
+                        await notification.save()
+
+                    }else if(filterPatient.length===0){
+                        await notification.save()
+                    }
+                }
             }
             const dailyUpdate = new HealthStatus({
                 patientId: req.body.patientId,
@@ -97,13 +137,12 @@ router.post('/', Signin.authenticateToken, async (req, res) => {
             })
             const newDayUpdate = await dailyUpdate.save()
             res.status(201).json(newDayUpdate)
-
-
-
         }
-    } else {
+    }
+    else {
         res.status(403).json({"message": "You do not have permission"})
     }
+
 })
 
 // Doctor view all the patients health status(good/bad/non-reporting)

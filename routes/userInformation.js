@@ -132,6 +132,17 @@ router.get('/gender',  Signin.authenticateToken, async (req,res)=>{
         res.status(403).json({message:"You don't have permission"})
     }
 })
+// Doctor gets the address of the patients=> map display purpose
+router.get('/address',Signin.authenticateToken,async (req,res)=>{
+    const requestUsers = await Users.find({email:req.user['email']})
+    if(requestUsers[0]['role']==="doctor"){
+        const field = await Users.aggregate([{$match: {email: {$in: requestUsers[0]['patientList']}}},
+            { $project : { email:1, street : 1, city : 1, state: 1, postcode:1 }} ])
+        res.status(200).json(field)
+    }else if(requestUsers[0]['role']==='patient'){
+        res.status(403).json({message:"You do not have permission to see."})
+    }
+})
 
 router.get('/age',Signin.authenticateToken, async (req,res)=>{
     const findUsers = await Users.find({"email":req.user["email"]})
@@ -213,9 +224,8 @@ router.post('/signup', async (req,res)=>{
                 password:hashedPassword,
                 confirmedPassword:hashedPassword
             })
-
         }
-
+    console.log(user)
     const users = await Users.find({email:req.body.email},null,{limit:1})
     try{
         // Check email existence
@@ -245,7 +255,6 @@ router.post('/signup', async (req,res)=>{
                 let patientEmail = user["email"]
                 let code = user["invitation"]
                 const findDoctorEntry = await Invitation.find({invitationCode:code},null,{limit:1})
-                console.log(findDoctorEntry)
                 if (findDoctorEntry.length ===0){
                     res.status(404).json({message:"The doctor invitation code is not valid"})
                 }else{
@@ -254,7 +263,6 @@ router.post('/signup', async (req,res)=>{
                             console.log(err)
                         }})
                     user["myDoctor"]=findDoctorEntry[0]['doctorId']
-                    console.log(user["myDoctor"])
                     await user.save()
                     res.status(201).json({
                         firstname:req.body.firstname,
@@ -274,7 +282,7 @@ router.post('/signup', async (req,res)=>{
             }
         }
     }catch(err){
-        res.status(400).json({message:err.message})
+        res.status(400).json({message:"Please make sure all the required field has been filled."})
     }
 })
 
@@ -326,7 +334,6 @@ router.patch('/:id',getUsers,async (req,res)=>{
     }catch(err){
         res.status(400).json({message:err.message})
     }
-
 })
 router.delete('/:id',getUsers, async (req,res)=>{
     try{

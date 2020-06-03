@@ -47,5 +47,9 @@ app.use('/healthStatus', dailyUpdate)
 const securityQuestions = require("./routes/securityQuestions")
 app.use('/security-questions',securityQuestions)
 
+// Patients who have no symptoms for 14 days should get notification to get retest
+const patientDays = require("./routes/patientsNotification")
+app.use('/notification',patientDays)
+
 
 app.listen(3000,()=>console.log('server started'))
