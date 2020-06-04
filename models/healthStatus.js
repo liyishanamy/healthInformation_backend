@@ -1,6 +1,10 @@
 const mongoose = require('mongoose')
 
 const healthStatusSchema = new mongoose.Schema({
+    myDoctor:{
+        type:String,
+        required:true
+    },
     patientId:{
       type:String,
       required:true

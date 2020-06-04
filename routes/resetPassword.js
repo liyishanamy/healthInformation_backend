@@ -24,7 +24,6 @@ router.put('/', Signin.authenticateToken, async (req,res)=>{
                 return res.status(200).json({"message":"Your password has been updated!"})
             })
     }
-
 })
 
 module.exports = router;

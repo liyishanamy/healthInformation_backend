@@ -19,10 +19,12 @@ ObjectId = require('mongodb').ObjectID
 // Generate daily health status
 router.post('/', Signin.authenticateToken, async (req, res) => {
     const findUsers = await Users.find({"email": req.user["email"]}, null, {limit: 1})
+    console.log(findUsers)
     const requestPerson = findUsers[0]["_id"]
     const findPatientId = findUsers[0]
+    const myDoctor = findUsers[0]["myDoctor"]
     var recentRecord = await HealthStatus.find({patientId: req.body.patientId}).sort({"Date": -1}).limit(1)
-    console.log("recentRecord",recentRecord[0]['daysOfNoSymptom'])
+
     // Check to see if the patient has no symptom for more than 14 days
 
     if (findUsers == null) {
@@ -44,6 +46,7 @@ router.post('/', Signin.authenticateToken, async (req, res) => {
                 updatedDays = 0
             }
             const dailyUpdate = new HealthStatus({
+                myDoctor:myDoctor,
                 patientId: req.body.patientId,
                 patientName: findPatientId['firstname'],
                 daysOfNoSymptom: updatedDays,
@@ -59,10 +62,11 @@ router.post('/', Signin.authenticateToken, async (req, res) => {
             if (req.body.temperature < 37 && req.body.symptom.length === 0) {
                 // get better
                 updatedDays = recentRecord[0]['daysOfNoSymptom'] + 1
-                if(updatedDays>=14){
+                if(updatedDays>=7){
                     const filterPatient = await patientsNotification.find({userId:req.body.patientId})
                     const notification = new patientsNotification({
                         userId: req.body.patientId,
+                        myDoctorId:myDoctor,
                         email: findUsers[0]['email'],
                         registrationDate:findUsers[0]['createdDate'],
                         noSymptomsDays:updatedDays
@@ -84,6 +88,7 @@ router.post('/', Signin.authenticateToken, async (req, res) => {
 
             }
             const dailyUpdate = new HealthStatus({
+                myDoctor:myDoctor,
                 patientId: req.body.patientId,
                 patientName: findPatientId['firstname'],
                 temperature: req.body.temperature,
@@ -104,15 +109,14 @@ router.post('/', Signin.authenticateToken, async (req, res) => {
 
                 await patientsNotification.deleteOne({"userId": ObjectId(req.body.patientId)})
 
-
             } else {
                 // get better
                 updatedDays = recentRecord[0]['daysOfNoSymptom'] + 1
-
-                if(updatedDays>=14){
+                if(updatedDays>=7){
                     const filterPatient = await patientsNotification.find({userId:req.body.patientId})
                     const notification = new patientsNotification({
                         userId: req.body.patientId,
+                        myDoctorId:myDoctor,
                         email: findUsers[0]['email'],
                         registrationDate:findUsers[0]['createdDate'],
                         noSymptomsDays:updatedDays
@@ -128,6 +132,7 @@ router.post('/', Signin.authenticateToken, async (req, res) => {
                 }
             }
             const dailyUpdate = new HealthStatus({
+                myDoctor:myDoctor,
                 patientId: req.body.patientId,
                 patientName: findPatientId['firstname'],
                 daysOfNoSymptom: updatedDays,
@@ -161,12 +166,22 @@ router.get('/stats', Signin.authenticateToken, async (req, res) => {
     // Doctor case
     if (requestPerson[0]['role'] === 'doctor') {
         var totalPatients = requestPerson[0]['patientList'].length
+        console.log("totalPatients",totalPatients)
         //Query data on single data
         if (date_from !== undefined && date_to !== undefined) {
-            const findDate = await HealthStatus.find({Date: {$gte: date_from, $lt: date_to}})
+            const findPatients = await Users.aggregate([{$match: {email: {$in: requestPerson[0]['patientList']}}},
+                { $project : { _id: 1 }} ])
+            console.log(findPatients)
+            const patients = []
+            for (var i =0;i<findPatients.length;i++){
+                patients.push(findPatients[i]['_id'])
+            }
+            console.log(patients)
+            const findDate = await HealthStatus.find({Date: {$gte: date_from, $lt: date_to},patientId:{$in : patients}})
             console.log(findDate)
 
             for (var i = 0; i < findDate.length; i++) {
+                console.log(i,findDate[i])
                 if (findDate[i].symptom.length !== 0 || findDate[i].temperature > 37) {
                     gettingWorse += 1
                 } else if (findDate[i].symptom.length === 0 && findDate[i].temperature < 37) {
@@ -183,6 +198,32 @@ router.get('/stats', Signin.authenticateToken, async (req, res) => {
         } else {
             res.status(400).json({message: "wrong format"})
         }
+    }
+
+})
+router.get('/temperature/:id', Signin.authenticateToken,async (req,res)=>{
+    var requestPerson = await Users.find({"email": req.user["email"]}, null, {limit: 1})
+    if(requestPerson[0]["role"]==="doctor"){
+        var patient = await HealthStatus.aggregate([{$match:{patientId:req.params.id}},{$project:{Date:1,temperature:1}}])
+
+        res.status(200).json(patient)
+
+    }else if (requestPerson[0]["role"]==="patient"){
+        res.status(403).json({message:"You do not have permission"})
+
+    }
+
+})
+router.get('/symptom/:id', Signin.authenticateToken,async (req,res)=>{
+    var requestPerson = await Users.find({"email": req.user["email"]}, null, {limit: 1})
+    console.log(requestPerson)
+    if(requestPerson[0]["role"]==="doctor"){
+        var patient = await HealthStatus.aggregate([{$match:{patientId:req.params.id}},{$project:{Date:1,symptom:1}}])
+
+        res.status(200).json(patient)
+
+    } else if (requestPerson[0]["role"]==="patient"){
+        res.status(403).json({message:"You do not have permission"})
     }
 
 })
@@ -218,9 +259,8 @@ router.get('/:id', Signin.authenticateToken, async (req, res) => {
         var patientList = requestPerson[0]['patientList']
         console.log(patientList)
         var patientInfo = await Users.findById(req.params.id)
-        console.log(patientInfo)
         var patientEmail = patientInfo['email']
-        console.log(patientEmail)
+
 
         if (patientList.includes(patientEmail)) {
             var date_from = req.query['from'];
@@ -244,7 +284,6 @@ router.get('/:id', Signin.authenticateToken, async (req, res) => {
     } else {
         res.status(403).json({message: "you don't have permission"})
     }
-
 })
 
 

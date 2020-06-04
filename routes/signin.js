@@ -63,20 +63,59 @@ router.post('/login',async (req,res)=>{
     }
 })
 
-function generateAccessToken(user){
-    return jwt.sign(user,process.env.ACCESS_TOKEN_SECRET,{expiresIn: '600s'})
+async function authenticateAuthHeader({username,password}) {
+    console.log(username,password)
+    const user  = await Users.find({email: username});
+    console.log("user",user)
+    var userMsg;
+    if (await bcrypt.compare(password,user[0].password)) {
+        userMsg = "Authenticated"
+    }else{
+        userMsg = "Authentication failure"
+    }
+    return userMsg
 }
 
-function authenticateToken(req,res,next){
+
+function generateAccessToken(user){
+    return jwt.sign(user,process.env.ACCESS_TOKEN_SECRET,{expiresIn: '1800s'})
+}
+
+async function authenticateToken(req, res, next) {
     console.log("authenticated")
-    const authHeader =req.headers['authorization']
+    const authHeader = req.headers['authorization']
+
+
+    console.log("authHeader", authHeader)
     const token = authHeader && authHeader.split(' ')[1]
-    if(token == null) return res.status(401).json({message:"Unauthorized"})
-    jwt.verify(token,process.env.ACCESS_TOKEN_SECRET,(err,user)=>{
-       if (err) return res.status(403).json({"message":"the token is invalid"})
-        req.user = user
-        next()
-    })
+    const header = authHeader.split(' ')[0]
+
+    if (token == null) return res.status(401).json({message: "Unauthorized"})
+    if (header === "Bearer") { // access token
+        jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, user) => {
+            if (err) return res.status(403).json({"message": "the token is invalid"})
+            req.user = user
+            next()
+        })
+    }
+    if (header === "Basic") { // basic auth
+        const credentials = Buffer.from(token, 'base64').toString('ascii');
+        const [username, password] = credentials.split(':');
+        try {
+            const userHeader = await authenticateAuthHeader({username, password});
+            if (userHeader === "Authentication failure") {
+                res.status(401).json({message: userHeader})
+            } else if (userHeader === "Authenticated") {
+                req.user = {email: username}
+                next()
+            }
+        }catch (e) {
+            console.log(e)
+        }
+
+
+
+    }
 }
 
 module.exports = router;
