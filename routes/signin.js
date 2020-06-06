@@ -66,13 +66,18 @@ router.post('/login',async (req,res)=>{
 async function authenticateAuthHeader({username,password}) {
     console.log(username,password)
     const user  = await Users.find({email: username});
-    console.log("user",user)
-    var userMsg;
-    if (await bcrypt.compare(password,user[0].password)) {
-        userMsg = "Authenticated"
-    }else{
+    if(user.length===0){
         userMsg = "Authentication failure"
+    }else{
+        console.log("user",user)
+        var userMsg;
+        if (await bcrypt.compare(password,user[0].password)) {
+            userMsg = "Authenticated"
+        }else{
+            userMsg = "Authentication failure"
+        }
     }
+
     return userMsg
 }
 

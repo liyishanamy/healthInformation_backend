@@ -52,4 +52,8 @@ const patientDays = require("./routes/patientsNotification")
 app.use('/notification',patientDays)
 
 
+// Patients can book appointment of retest once their health status get better
+const appointment = require("./routes/appointment")
+app.use('/appointment', appointment)
+
 app.listen(3000,()=>console.log('server started'))
