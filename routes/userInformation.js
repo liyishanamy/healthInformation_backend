@@ -186,6 +186,7 @@ router.post('/signup', async (req,res)=>{
     let ageDif = Date.now()-Date.parse(birthday);
     var ageDate = new Date(ageDif)
     var userAge = Math.abs(ageDate.getUTCFullYear()-1970)
+    const invitation = Math.random().toString(36).substring(7)
 
     if(role==="doctor"){
         user = new Users({
@@ -203,7 +204,8 @@ router.post('/signup', async (req,res)=>{
             email:req.body.email,
             password:hashedPassword,
             confirmedPassword:hashedPassword,
-            patientList:[]
+            patientList:[],
+            invitationCode:invitation
         })}
     if(role === "patient"){
         //check Invitation code validation, if not valid, return 400 error
@@ -235,6 +237,9 @@ router.post('/signup', async (req,res)=>{
         else{
             if(user["role"]==="doctor"){
                 await user.save()
+                const doctorId = await Users.find({email:req.body.email})
+
+
                 res.status(201).json({
                     firstname:req.body.firstname,
                     lastname:req.body.lastname,
@@ -248,8 +253,14 @@ router.post('/signup', async (req,res)=>{
                     phone:req.body.phone,
                     age:userAge,
                     email:req.body.email,
-                    patientList:[]
+                    patientList:[],
+                    invitationCode:invitation
                 })
+                const invite = new Invitation({
+                    doctorId:doctorId[0]['_id'],
+                    invitationCode:invitation
+                })
+                await invite.save();
             }
             if (user["role"]==="patient"){
                 let patientEmail = user["email"]
@@ -277,7 +288,8 @@ router.post('/signup', async (req,res)=>{
                         invitation:req.body.invitation,
                         birthday:req.body.birthday,
                         age:userAge,
-                        email:req.body.email})
+                        email:req.body.email,
+                    })
                 }
             }
         }

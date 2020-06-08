@@ -7,6 +7,7 @@ var mongoose = require('mongoose');
 ObjectId = require('mongodb').ObjectID
 // middleware of doctor signup process
 // Only doctor can call this
+/**
 router.post('/', Signin.authenticateToken, async (req,res)=>{
     const findUsers = await Users.find({"email":req.user["email"]},null,{limit:1})
     const requestPerson = findUsers[0]["role"]
@@ -21,6 +22,21 @@ router.post('/', Signin.authenticateToken, async (req,res)=>{
     }else{
         res.status(403).json({"message":"You do not have permission"})
     }
+
+})*/
+router.get('/',Signin.authenticateToken, async (req, res)=>{
+    const requestPerson = await Users.find({email:req.user['email']})
+    const requestPersonRole = requestPerson[0]['role']
+    if(requestPersonRole === "doctor"){
+        const doctorInvitation = await Invitation.find({doctorId:requestPerson[0]["_id"].toString()})
+        res.status(200).json({invitationCode:doctorInvitation[0]['invitationCode']})
+
+    }else if(requestPersonRole === "patient"){
+        res.status(403).json({message:"You do not have permission"})
+    }
+
+
+
 
 })
 

@@ -25,6 +25,7 @@ router.post('/', Signin.authenticateToken, async (req, res) => {
                 patientEmail: findUser[0]['email'],
                 patientName: findUser[0]['firstname'] + " " + findUser[0]['lastname'],
                 myDoctorId: findUser[0]['myDoctor'],
+                appointmentStart:startDate,
                 appointmentTime: {"startTime": startDate, "endTime": endDate}
             })
             // find the date record
@@ -128,16 +129,34 @@ router.post('/', Signin.authenticateToken, async (req, res) => {
 router.put('/testDone', Signin.authenticateToken, async (req, res) => {
     const requestUser = req.user["email"]
     const findUser = await Users.find({email: requestUser})
+    const patientList = findUser[0]['patientList']
     const patientId = req.body.patientId;
+    const findPatient = await Users.findById(ObjectId(patientId))
+    if(!findPatient){
+        res.status(404).json({message:"Cannot find patient id"})
+    }const patientEmail = findPatient.email
+
+
+
     const testDone = req.body.testDone;
     if (findUser[0]['role'] === "doctor") {
-        await Appointment.updateOne({"patientId": patientId}, {$set: {"testDone": testDone}}, (err, result) => {
-            if (err) {
-                res.status(500).send(err)
+        if (patientList.includes(patientEmail)) {
+            const update = await Appointment.updateOne({"patientId": patientId}, {$set: {"testDone": testDone}})
+            if (update.nModified !== 0) {
+                res.status(200).json({message: "Test has been updated."})
+            } else {
+                // Did not update any entry
+                const findPatient = await Appointment.find({patientId: patientId})
+                if (findPatient.length !== 0) {
+                    res.status(200).json({message: "The test has already been done"})
+                } else {
+                    res.status(404).json({message: "Cannot find the patient id"})
+                }
             }
-        })
+        } else {
+            res.status(404).json({message: "Cannot find your patient id"})
+        }
 
-        res.status(200).json({message: "Test has been updated."})
 
     } else if (findUser[0]['role'] === "patient") {
         res.status(403).json({message: "You do not have permission"})
@@ -151,25 +170,32 @@ router.put('/testResult', Signin.authenticateToken, async (req, res) => {
     const patientId = req.body.patientId;
     const testResult = req.body.testResult;
 
+    const patientList = findUser[0]['patientList']
+    const findPatient = await Users.findById(ObjectId(patientId))
+    if(!findPatient){
+        res.status(404).json({message:"Cannot find patient id"})
+    }
+    const patientEmail = findPatient.email
+
+
     if (testResult === "positive" || testResult === "negative" || testResult === "Not Done") {
         if (findUser[0]['role'] === "doctor") {
-            const update = await Appointment.updateOne({"patientId": patientId}, {$set: {"testResult": testResult}})
-
-            console.log("update",update.nModified)
-            if(update.nModified!==0){
-                res.status(200).json({message: "Test has been updated."})
-            }else{
-                // Did not update any entry
-                const findPatient = await Appointment.find({patientId:patientId})
-                if(findPatient.length!==0){
-                    res.status(200).json({message:"The test result has already been up to date"})
-                }else{
-                    res.status(404).json({message:"Cannot find the patient id"})
+            if (patientList.includes(patientEmail)) {
+                const update = await Appointment.updateOne({"patientId": patientId}, {$set: {"testResult": testResult}})
+                if (update.nModified !== 0) {
+                    res.status(200).json({message: "Test has been updated."})
+                } else {
+                    // Did not update any entry
+                    const findPatient = await Appointment.find({patientId: patientId})
+                    if (findPatient.length !== 0) {
+                        res.status(200).json({message: "The test result has already been up to date"})
+                    } else {
+                        res.status(404).json({message: "Cannot find the patient id"})
+                    }
                 }
-
+            } else {
+                res.status(404).json({message: "Cannot find your patient id"})
             }
-
-
         } else if (findUser[0]['role'] === "patient") {
             res.status(403).json({message: "You do not have permission"})
         }
@@ -202,17 +228,21 @@ router.get('/allPatients', Signin.authenticateToken, async (req, res) => {
     const requestUser = req.user["email"]
     const findUser = await Users.find({email: requestUser})
     const doctorId = findUser[0]['_id']
-    if (findUser[0]['role'] === "doctor") {
-        const findPatients = await Appointment.find({myDoctorId: doctorId})
-        res.status(200).json({findPatients})
+    const date_from = req.query.from
+    const date_to = req.query.to
 
+    if (findUser[0]['role'] === "doctor") {
+        const findPatients  =await Appointment.find({appointmentStart: {$gte: date_from, $lt: date_to},myDoctorId: doctorId})
+        console.log(findPatients)
+        //const findPatients = await Appointment.find({myDoctorId: doctorId},{appointmentStart: {$gte: date_from, $lt:date_to}})
+
+        res.status(200).json({findPatients})
     } else if (findUser[0]['role'] === "patient") {
         res.status(403).json({message: "You do not have permission"})
     }
-
 })
 
-// Cancel an appointment --- bug
+// Cancel an appointment
 router.delete('/', Signin.authenticateToken, async (req, res) => {
     const requestUser = req.user["email"]
     const findUser = await Users.find({email: requestUser})
@@ -230,7 +260,6 @@ router.delete('/', Signin.authenticateToken, async (req, res) => {
             const appointmentHour = appointmentDate.getHours()
             const appointmentMinutes = appointmentDate.getMinutes()
             console.log("date", appointmentDate, appointmentHour, appointmentMinutes)
-            const appointmentSchedule = await Timeslot.find({date: new Date(appointmentDate.getFullYear(), appointmentDate.getMonth(), appointmentDate.getDate())})
             await Timeslot.updateOne({date: new Date(appointmentDate.getFullYear(), appointmentDate.getMonth(), appointmentDate.getDate())}, {
                 $pull: {
                     timeSlotTaken: {

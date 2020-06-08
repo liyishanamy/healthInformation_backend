@@ -5,15 +5,78 @@ const Signin=require('./signin')
 
 
 
-router.get('/:id',Signin.authenticateToken,async (req,res)=>{
-    //res.send(req.params.id)
-    const finduser = await Users.find({"_id":req.params.id})
+router.post('/',Signin.authenticateToken,async (req,res)=>{
+    const bodyEmail = req.body.userEmail // The person's profile that the request person wants to search it up
+    const requestPerson = req.user['email']
+    const findUser = await Users.find({"email":bodyEmail})
+    const request = await Users.find({"email":requestPerson})
+    const requestPersonRole = request[0]['role']
+    if(requestPersonRole === "doctor"){
+        const patientList = request[0]['patientList']
+        if(bodyEmail === requestPerson){
+            // Doctor wants to see his own profile
+            res.status(200).json({
+                firstname:findUser[0]['firstname'],
+                lastname:findUser[0]['lastname'],
+                gender:findUser[0]['gender'],
+                role:findUser[0]['role'],
+                street:findUser[0]['street'],
+                city:findUser[0]['city'],
+                state:findUser[0]['state'],
+                postcode:findUser[0]['postcode'],
+                birthday:findUser[0]['birthday'],
+                phone:findUser[0]['phone'],
+                age:findUser[0]['age'],
+                email:findUser[0]['email'],
+                patientList:findUser[0]['patientList'],
+                invitationCode:findUser[0]['invitationCode']
+            })
 
-    if(finduser[0]["email"] === req.user["email"]){
-        res.status(200).json(finduser[0])
-    }else{
-        // no permission. If access toke does not match up
-        res.status(403).json({"message":"You do not have permission"})
+        }else if(bodyEmail !== requestPerson && patientList.includes(bodyEmail)){
+            // The target user is one of the doctors' patients
+            res.status(200).json({
+                firstname:findUser[0]['firstname'],
+                lastname:findUser[0]['lastname'],
+                gender:findUser[0]['gender'],
+                role:findUser[0]['role'],
+                street:findUser[0]['street'],
+                city:findUser[0]['city'],
+                state:findUser[0]['state'],
+                postcode:findUser[0]['postcode'],
+                birthday:findUser[0]['birthday'],
+                phone:findUser[0]['phone'],
+                age:findUser[0]['age'],
+                email:findUser[0]['email'],
+                myDoctor:findUser[0]['myDoctor']
+                })
+
+        }else{
+            //Doctor tries to view other patients' profile
+            res.status(403).json({message:"You do not have permission"})
+        }
+    }else if(requestPersonRole === "patient"){
+        if (requestPerson===bodyEmail){
+            // View his own profile
+            res.status(200).json({
+                firstname:findUser[0]['firstname'],
+                lastname:findUser[0]['lastname'],
+                gender:findUser[0]['gender'],
+                role:findUser[0]['role'],
+                street:findUser[0]['street'],
+                city:findUser[0]['city'],
+                state:findUser[0]['state'],
+                postcode:findUser[0]['postcode'],
+                birthday:findUser[0]['birthday'],
+                phone:findUser[0]['phone'],
+                age:findUser[0]['age'],
+                email:findUser[0]['email'],
+                myDoctor:findUser[0]['myDoctor']
+            })
+        }else{
+            //No permission
+            res.status(403).json({message:"You do not have permission"})
+        }
+
     }
 })
 

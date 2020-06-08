@@ -62,6 +62,10 @@ const userSchema = new mongoose.Schema({
         type: Array,
         required: false
     },
+    invitationCode:{
+        type:String,
+        required:false
+    },
     myDoctor: {
         type: String,
         required: false
