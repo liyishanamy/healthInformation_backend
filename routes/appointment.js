@@ -130,14 +130,12 @@ router.put('/testDone', Signin.authenticateToken, async (req, res) => {
     const requestUser = req.user["email"]
     const findUser = await Users.find({email: requestUser})
     const patientList = findUser[0]['patientList']
-    const patientId = req.body.patientId;
-    const findPatient = await Users.findById(ObjectId(patientId))
+    const patientEmail = req.body.patientEmail;
+    const findPatient = await Users.find({email:patientEmail})
     if(!findPatient){
-        res.status(404).json({message:"Cannot find patient id"})
-    }const patientEmail = findPatient.email
-
-
-
+        res.status(404).json({message:"Cannot find patient email"})
+    }
+    const patientId = findPatient[0]['_id']
     const testDone = req.body.testDone;
     if (findUser[0]['role'] === "doctor") {
         if (patientList.includes(patientEmail)) {
@@ -167,16 +165,15 @@ router.put('/testDone', Signin.authenticateToken, async (req, res) => {
 router.put('/testResult', Signin.authenticateToken, async (req, res) => {
     const requestUser = req.user["email"]
     const findUser = await Users.find({email: requestUser})
-    const patientId = req.body.patientId;
     const testResult = req.body.testResult;
 
     const patientList = findUser[0]['patientList']
-    const findPatient = await Users.findById(ObjectId(patientId))
+    const patientEmail = req.body.patientEmail;
+    const findPatient = await Users.find({email:patientEmail})
     if(!findPatient){
-        res.status(404).json({message:"Cannot find patient id"})
+        res.status(404).json({message:"Cannot find patient email"})
     }
-    const patientEmail = findPatient.email
-
+    const patientId = findPatient[0]['_id']
 
     if (testResult === "positive" || testResult === "negative" || testResult === "Not Done") {
         if (findUser[0]['role'] === "doctor") {
@@ -234,7 +231,6 @@ router.get('/allPatients', Signin.authenticateToken, async (req, res) => {
     if (findUser[0]['role'] === "doctor") {
         const findPatients  =await Appointment.find({appointmentStart: {$gte: date_from, $lt: date_to},myDoctorId: doctorId})
         console.log(findPatients)
-        //const findPatients = await Appointment.find({myDoctorId: doctorId},{appointmentStart: {$gte: date_from, $lt:date_to}})
 
         res.status(200).json({findPatients})
     } else if (findUser[0]['role'] === "patient") {
@@ -295,14 +291,32 @@ router.delete('/', Signin.authenticateToken, async (req, res) => {
 
 // retest stats
 router.get('/stats', Signin.authenticateToken, async (req, res) => {
+    const requestPerson = req.user['email']
+    const requestUserProfile = await Users.find({email:requestPerson})
+    const requestRole = requestUserProfile[0]['role']
+    if(requestRole==="doctor"){
+        const doctorId = requestUserProfile[0]['_id']
+        const findPositivePatients = await Appointment.find({myDoctorId:doctorId.toString(),testResult:"positive"})
+        const findNegativePatients = await Appointment.find({myDoctorId:doctorId.toString(),testResult:"negative"})
+        const findNotDonePatients = await Appointment.find({myDoctorId:doctorId.toString(),testResult:"Not Done"})
+        const positiveNum = findPositivePatients.length
+        const negativeNum = findNegativePatients.length
+        const notDoneNum = findNotDonePatients.length
+        res.status(200).json({
+            positive:positiveNum,
+            negative:negativeNum,
+            notDone:notDoneNum
+        })
+
+
+
+    }else if(requestRole==="patient"){
+        res.status(403).json({message:"You do not have permission"})
+    }
+
 
 })
 
-// Doctor can query the appointments on one particular day.
-router.get('/patient', Signin.authenticateToken, async (req, res) => {
-    const date = req.query['date']
 
-
-})
 
 module.exports = router;
