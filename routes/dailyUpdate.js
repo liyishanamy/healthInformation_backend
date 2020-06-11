@@ -19,7 +19,6 @@ ObjectId = require('mongodb').ObjectID
 // Generate daily health status
 router.post('/', Signin.authenticateToken, async (req, res) => {
     const findUsers = await Users.find({"email": req.user["email"]}, null, {limit: 1})
-    console.log(findUsers)
     const requestPerson = findUsers[0]["_id"]
     const findPatientId = findUsers[0]
     const myDoctor = findUsers[0]["myDoctor"]
@@ -201,10 +200,13 @@ router.get('/stats', Signin.authenticateToken, async (req, res) => {
     }
 
 })
-router.get('/temperature/:id', Signin.authenticateToken,async (req,res)=>{
+router.post('/temperature/', Signin.authenticateToken,async (req,res)=>{
+    const findPatientEmail = req.body.email
+    const patientRecord = await Users.find({"email":findPatientEmail})
+    const patientId = patientRecord[0]["_id"]
     var requestPerson = await Users.find({"email": req.user["email"]}, null, {limit: 1})
     if(requestPerson[0]["role"]==="doctor"){
-        var patient = await HealthStatus.aggregate([{$match:{patientId:req.params.id}},{$project:{Date:1,temperature:1}}])
+        var patient = await HealthStatus.aggregate([{$match:{patientId:patientId.toString()}},{$project:{Date:1,temperature:1}}])
 
         res.status(200).json(patient)
 
@@ -214,65 +216,70 @@ router.get('/temperature/:id', Signin.authenticateToken,async (req,res)=>{
     }
 
 })
-router.get('/symptom/:id', Signin.authenticateToken,async (req,res)=>{
+router.post('/symptom/', Signin.authenticateToken,async (req,res)=>{
+    const findPatientEmail = req.body.email
+    const patientRecord = await Users.find({"email":findPatientEmail})
+    const patientId = patientRecord[0]["_id"]
     var requestPerson = await Users.find({"email": req.user["email"]}, null, {limit: 1})
-    console.log(requestPerson)
     if(requestPerson[0]["role"]==="doctor"){
-        var patient = await HealthStatus.aggregate([{$match:{patientId:req.params.id}},{$project:{Date:1,symptom:1}}])
+        var patient = await HealthStatus.aggregate([{$match:{patientId:patientId.toString()}},{$project:{Date:1,symptom:1}}])
 
         res.status(200).json(patient)
 
-    } else if (requestPerson[0]["role"]==="patient"){
+    }else if (requestPerson[0]["role"]==="patient"){
         res.status(403).json({message:"You do not have permission"})
+
     }
 
 })
 
 // Single patient health status in a period of time
-router.get('/:id', Signin.authenticateToken, async (req, res) => {
-
+router.post('/patientHealth', Signin.authenticateToken, async (req, res) => {
+    const postEmail = req.body.email
     var requestPerson = await Users.find({"email": req.user["email"]}, null, {limit: 1})
+    var targetPerson = await Users.find({"email":postEmail})
     // Patient case
     if (requestPerson[0]['role'] === 'patient') {
-        if (requestPerson[0]["_id"].equals(ObjectId(req.params.id))) {
+        if ( req.user["email"]===postEmail) {
             // This patient can access his health status
             var date_from = req.query['from'];
             var date_to = req.query['to'];
             if (date_from !== undefined && date_to === undefined) {
-                const findDate = await HealthStatus.find({Date: {$gte: date_from}, patientId: req.params.id})
+                const findDate = await HealthStatus.find({Date: {$gte: date_from}, patientId: requestPerson[0]["_id"].toString()})
                 res.status(200).json(findDate)
             }
             if (date_from !== undefined && date_to !== undefined) {
                 const findDate = await HealthStatus.find({
                     Date: {$gte: date_from, $lt: date_to},
-                    patientId: req.params.id
+                    patientId: requestPerson[0]["_id"].toString()
                 })
                 res.status(200).json(findDate)
             } else {
                 res.status(400).json({message: "wrong format"})
 
             }
+        }else{
+            res.status(403).json({message:"You do not have permission"})
         }
     }
     // Doctor case
     if (requestPerson[0]['role'] === 'doctor') {
         var patientList = requestPerson[0]['patientList']
-        console.log(patientList)
-        var patientInfo = await Users.findById(req.params.id)
-        var patientEmail = patientInfo['email']
+        console.log(patientList.includes(postEmail))
 
 
-        if (patientList.includes(patientEmail)) {
+
+        if (patientList.includes(postEmail)) {
             var date_from = req.query['from'];
             var date_to = req.query['to'];
             if (date_from !== undefined && date_to === undefined) {
-                const findDate = await HealthStatus.find({Date: {$gte: date_from, patientId: req.params.id}})
+                const findDate = await HealthStatus.find({Date: {$gte: date_from, patientId: targetPerson[0]["_id"].toString()}})
                 res.status(200).json(findDate)
             }
             if (date_from !== undefined && date_to !== undefined) {
                 const findDate = await HealthStatus.find({
                     Date: {$gte: date_from, $lte: date_to},
-                    patientId: req.params.id
+                    patientId: targetPerson[0]["_id"].toString()
                 })
                 res.status(200).json(findDate)
             } else {
@@ -281,8 +288,6 @@ router.get('/:id', Signin.authenticateToken, async (req, res) => {
         } else {
             res.status(403).json({message: "you don't have permission"})
         }
-    } else {
-        res.status(403).json({message: "you don't have permission"})
     }
 })
 

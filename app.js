@@ -12,12 +12,18 @@ var app = express();
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'pug');
-
 app.use(logger('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
-app.use(express.static(path.join(__dirname, 'public')));
+//app.use(express.static(path.join(__dirname, 'public')));
+//app.use('/uploads',express.static(path.join(__dirname,'uploads')))
+app.use(express.static(__dirname + 'public'));
+//app.use(express.static('public'));
+
+//Serves all the request which includes /images in the url from Images folder
+//app.use('/images', express.static(__dirname + '/images'));
+
 
 app.use('/', indexRouter);
 app.use('/users', usersRouter);
@@ -26,6 +32,7 @@ app.use('/users', usersRouter);
 app.use(function(req, res, next) {
   next(createError(404));
 });
+
 
 // error handler
 app.use(function(err, req, res, next) {

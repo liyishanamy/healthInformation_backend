@@ -35,9 +35,6 @@ router.get('/',Signin.authenticateToken, async (req, res)=>{
         res.status(403).json({message:"You do not have permission"})
     }
 
-
-
-
 })
 
 module.exports = router;

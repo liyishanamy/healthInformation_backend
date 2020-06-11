@@ -1,7 +1,7 @@
 const mongoose = require('mongoose')
 
 const securityQuestionsSchema = new mongoose.Schema({
-    userId:{
+    userEmail:{
         type:String,
         required:true
     },
