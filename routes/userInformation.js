@@ -235,12 +235,16 @@ router.post('/signup', async (req,res)=>{
             res.status(400).json({"message":"The user email has been already in use."})
         }
         else{
+            useremail={email:req.body.email}
+            const accessToken = Signin.generateAccessToken(useremail)
+            console.log(accessToken)
             if(user["role"]==="doctor"){
                 await user.save()
                 const doctorId = await Users.find({email:req.body.email})
 
 
                 res.status(201).json({
+                    accessToken:accessToken,
                     firstname:req.body.firstname,
                     lastname:req.body.lastname,
                     gender:req.body.gender,
@@ -265,7 +269,8 @@ router.post('/signup', async (req,res)=>{
             if (user["role"]==="patient"){
                 let patientEmail = user["email"]
                 let code = user["invitation"]
-                const findDoctorEntry = await Invitation.find({invitationCode:code},null,{limit:1})
+                const findDoctorEntry = await Invitation.find({invitationCode:code})
+                console.log("findDocotor",findDoctorEntry)
                 if (findDoctorEntry.length ===0){
                     res.status(404).json({message:"The doctor invitation code is not valid"})
                 }else{
@@ -276,6 +281,7 @@ router.post('/signup', async (req,res)=>{
                     user["myDoctor"]=findDoctorEntry[0]['doctorId']
                     await user.save()
                     res.status(201).json({
+                        accessToken:accessToken,
                         firstname:req.body.firstname,
                         lastname:req.body.lastname,
                         gender:req.body.gender,

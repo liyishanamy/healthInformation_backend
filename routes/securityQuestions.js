@@ -4,6 +4,7 @@ const Users = require('../models/users')
 const Signin=require('./signin')
 const security = require('../models/securityQuestions')
 
+
 // set the security questions
 router.post('/',Signin.authenticateToken,async (req,res)=>{
     var findUsers =  await Users.find({"email":req.user["email"]},null,{limit:1})
@@ -33,12 +34,19 @@ router.post('/',Signin.authenticateToken,async (req,res)=>{
 })
 // Get the security questions
 router.post('/getQuestions',async (req,res)=>{
+    console.log("amy",req.body)
     const userEmail = req.body.email
-    var findUsers =  await security.find({"userEmail":userEmail})
+    console.log(userEmail)
+    var findUsers =  await security.find({userEmail:userEmail})
+    const test = await security.find()
+    console.log("findUser",test)
+    console.log(findUsers)
+
     if(findUsers.length===1){
         res.status(200).json({question1: findUsers[0].question1["question_1"],question2: findUsers[0].question2["question_2"],
             question3: findUsers[0].question3["question_3"]})
-    }else if(findUsers.length===0){
+    }
+    else if(findUsers.length===0){
         res.status(404).json({message:"The user has not set the security questions yet"})
     }
 

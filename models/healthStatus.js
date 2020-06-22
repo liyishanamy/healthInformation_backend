@@ -5,7 +5,7 @@ const healthStatusSchema = new mongoose.Schema({
         type:String,
         required:true
     },
-    patientId:{
+    patientEmail:{
       type:String,
       required:true
     },

@@ -7,6 +7,7 @@ const mongoose =require('mongoose')
 const cors = require('cors')
 
 
+
 mongoose.connect(process.env.DATABASE_URL,{useUnifiedTopology:true})
 const db = mongoose.connection
 app.use(express.json())

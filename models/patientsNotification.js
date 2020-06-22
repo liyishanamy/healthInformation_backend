@@ -1,17 +1,13 @@
 const mongoose = require('mongoose')
 
 const patientNotificationSchema = new mongoose.Schema({
-    userId:{
+    userEmail:{
         type:String,
         required:true
     },
     myDoctorId:{
       type:String,
       required:true
-    },
-    email:{
-        type:String,
-        required:true,
     },
     registrationDate:{
         type:Date,
