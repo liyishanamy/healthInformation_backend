@@ -83,7 +83,7 @@ async function authenticateAuthHeader({username,password}) {
 
 
 function generateAccessToken(user){
-    return jwt.sign(user,process.env.ACCESS_TOKEN_SECRET,{expiresIn: '1800s'})
+    return jwt.sign(user,process.env.ACCESS_TOKEN_SECRET,{expiresIn: '10000s'})
 }
 
 async function authenticateToken(req, res, next) {

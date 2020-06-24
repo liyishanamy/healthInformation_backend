@@ -58,6 +58,7 @@ router.post('/', Signin.authenticateToken, async (req, res) => {
             res.status(201).json(newDayUpdate)
         }else if (recentRecord.length === 1 && recentRecord[0]["Date"].setHours(0, 0, 0, 0) !== new Date().setHours(0, 0, 0, 0)) {
             console.log("we do not have record today")
+            console.log(recentRecord)
             var updatedDays;
             if (req.body.temperature < 37 && req.body.symptom.length === 0) {
                 // get better
@@ -144,7 +145,9 @@ router.post('/', Signin.authenticateToken, async (req, res) => {
                 symptom: req.body.symptom,// Give me an array of symptoms,
                 Date: req.body.Date
             })
-            await HealthStatus.deleteOne({patientEmail:req.body.email})
+            console.log(recentRecord)
+            console.log(recentRecord[0]["_id"])
+            await HealthStatus.deleteOne({_id:recentRecord[0]["_id"]})
 
             console.log("delete")
             const newDayUpdate = await dailyUpdate.save()
@@ -157,7 +160,7 @@ router.post('/', Signin.authenticateToken, async (req, res) => {
 
 })
 
-// Doctor view all the patients health status(good/bad/non-reporting)
+// Doctor view all the patients health status(good/bad/non-reporting) for one day
 router.get('/stats', Signin.authenticateToken, async (req, res) => {
     var requestPerson = await Users.find({"email": req.user["email"]}, null, {limit: 1})
     var date_from = req.query['from']
@@ -176,17 +179,9 @@ router.get('/stats', Signin.authenticateToken, async (req, res) => {
         console.log("totalPatients",totalPatients)
         //Query data on single data
         if (date_from !== undefined && date_to !== undefined) {
-            const findPatients = await Users.aggregate([{$match: {email: {$in: requestPerson[0]['patientList']}}},
-                { $project : { _id: 1 }} ])
-            console.log(findPatients)
-            const patients = []
-            for (var i =0;i<findPatients.length;i++){
-                patients.push(findPatients[i]['_id'])
-            }
-            console.log(patients)
-            const findDate = await HealthStatus.find({Date: {$gte: date_from, $lt: date_to},patientId:{$in : patients}})
-            console.log(findDate)
-
+            const findPatients = requestPerson[0]['patientList']
+            const findDate = await HealthStatus.find({Date: {$gte: date_from, $lt: date_to},patientEmail:{$in : findPatients}})
+            console.log("findDate",findDate)
             for (var i = 0; i < findDate.length; i++) {
                 console.log(i,findDate[i])
                 if (findDate[i].symptom.length !== 0 || findDate[i].temperature > 37) {
@@ -197,6 +192,7 @@ router.get('/stats', Signin.authenticateToken, async (req, res) => {
             }
             forgetReporting = totalPatients - gettingBetter - gettingWorse
             let finalReport = {
+                reportDate:date_from,
                 gettingBetter: gettingBetter,
                 gettingWorse: gettingWorse,
                 forgetReporting: forgetReporting
@@ -211,15 +207,20 @@ router.get('/stats', Signin.authenticateToken, async (req, res) => {
 router.post('/temperature/', Signin.authenticateToken,async (req,res)=>{
     const findPatientEmail = req.body.email
     const patientRecord = await Users.find({"email":findPatientEmail})
-    const patientId = patientRecord[0]["_id"]
     var requestPerson = await Users.find({"email": req.user["email"]}, null, {limit: 1})
+    var patient = await HealthStatus.aggregate([{$match:{patientEmail:findPatientEmail}},{$project:{Date:1,temperature:1}}])
+
     if(requestPerson[0]["role"]==="doctor"){
-        var patient = await HealthStatus.aggregate([{$match:{patientId:patientId.toString()}},{$project:{Date:1,temperature:1}}])
 
         res.status(200).json(patient)
 
     }else if (requestPerson[0]["role"]==="patient"){
-        res.status(403).json({message:"You do not have permission"})
+        if(findPatientEmail===req.user["email"]){
+            console.log(patient)
+            res.status(200).json(patient)
+        }else{
+            res.status(403).json({message:"You do not have permission"})
+        }
 
     }
 

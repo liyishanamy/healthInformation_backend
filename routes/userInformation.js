@@ -148,22 +148,28 @@ router.get('/age',Signin.authenticateToken, async (req,res)=>{
     const findUsers = await Users.find({"email":req.user["email"]})
     console.log(findUsers)
     const role = findUsers[0]["role"]
-    var age_from = req.query['from'];
-    var age_to = req.query['to'];
+    var age_from = parseInt(req.query['from']);
+    var age_to = parseInt(req.query['to']);
     const patients =  findUsers[0]['patientList']
+    console.log("age_from",age_from)
+    console.log("age_to",age_to)
     if (role === "doctor"){
         Users.find({'email':{$in: patients}},async function (err,docs) {
             console.log(docs)
             if (age_from!==undefined && age_to===undefined){
                 const findAge = docs.filter(function (data) {
                     return data.age>=age_from})
-                res.status(200).json(findAge)
+                res.status(200).json({ageRange:age_from+"-"+age_to,number:findAge.length,users:findAge})
             }
             if(age_from!==undefined && age_to!==undefined){
+                console.log("age_from",age_from)
+                console.log("age_to",age_to)
+                console.log(age_to>age_from)
                 if (age_to>age_from){
                     const findAge = docs.filter(function (data) {
-                        return data.age>=age_from && data.age<=age_to})
-                    res.status(200).json(findAge)
+                        return data.age>=age_from && data.age<age_to})
+                    console.log("findAge",findAge)
+                    res.status(200).json({ageRange:age_from+"-"+age_to,number:findAge.length,users:findAge})
                 }else{
                     res.status(400).json({message:"wrong format"})
                 }
