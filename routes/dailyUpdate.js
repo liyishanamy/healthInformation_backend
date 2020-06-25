@@ -228,10 +228,9 @@ router.post('/temperature/', Signin.authenticateToken,async (req,res)=>{
 router.post('/symptom/', Signin.authenticateToken,async (req,res)=>{
     const findPatientEmail = req.body.email
     const patientRecord = await Users.find({"email":findPatientEmail})
-    const patientId = patientRecord[0]["_id"]
     var requestPerson = await Users.find({"email": req.user["email"]}, null, {limit: 1})
     if(requestPerson[0]["role"]==="doctor"){
-        var patient = await HealthStatus.aggregate([{$match:{patientId:patientId.toString()}},{$project:{Date:1,symptom:1}}])
+        var patient = await HealthStatus.aggregate([{$match:{patientEmail:findPatientEmail}},{$project:{Date:1,symptom:1}}])
 
         res.status(200).json(patient)
 
@@ -239,6 +238,43 @@ router.post('/symptom/', Signin.authenticateToken,async (req,res)=>{
         res.status(403).json({message:"You do not have permission"})
 
     }
+})
+// The Symptom count from started date till today
+router.post('/symptom/count', Signin.authenticateToken,async (req,res)=>{
+    const findPatientEmail = req.body.email
+    let headache = 0
+    let breatheHard = 0
+    let cough = 0
+    let runningNose = 0
+    let diarrhea = 0
+    var requestPerson = await Users.find({"email": req.user["email"]}, null, {limit: 1})
+    var findPatientRecord = await HealthStatus.find({patientEmail:findPatientEmail})
+    console.log("findPatientRecord",findPatientRecord)
+    for (var i=0;i<findPatientRecord.length;i++){
+        let symptomsList = findPatientRecord[i]['symptom']
+        if(symptomsList.length!==0){
+            if(symptomsList.includes("Headache")){
+                headache++
+            }if(symptomsList.includes("Cough")){
+                cough++
+            }if(symptomsList.includes("Running Nose")){
+                runningNose++
+            }if(symptomsList.includes("Diarrhea")){
+                diarrhea++
+            }if(symptomsList.includes("Breathe Hard")){
+                breatheHard++
+            }
+        }
+    }
+    res.status(200).json({
+        headache:headache,
+        cough:cough,
+        runningNose:runningNose,
+        diarrhea:diarrhea,
+        breatheHard:breatheHard
+
+    })
+
 
 })
 

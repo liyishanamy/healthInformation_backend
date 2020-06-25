@@ -7,12 +7,15 @@ var multer = require('multer')
 //var upload=multer({dest:'uploads/'})
 var ProfileImage = require('../models/profileImage')
 var path = require('path')
+var hash = require('object-hash')
+
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
         cb(null, './public/images');
     },
     filename: function (req, file, cb) {
-        cb(null, file.originalname)
+        var hashImage = hash.sha1(file)
+        cb(null, hashImage+file.originalname)
 
     }
 });
@@ -127,10 +130,13 @@ router.put('/', Signin.authenticateToken, async (req, res) => {
 
 // Upload image
 router.post("/profileImage", Signin.authenticateToken, upload.single('image'), async (req, res) => {
-    console.log(req.file)
+    console.log("file",req.file)
+    //var hashImage = hash.sha1(req.file)
+    console.log(req.body.email)
+    //console.log(hashImage)
     const profileImages = new ProfileImage({
         userEmail: req.body.email,
-        image: req.file.path,
+        image: req.file.path.substring(6),
         imageName: req.file.filename
     });
     const findImage = await ProfileImage.find({userEmail: req.body.email})
@@ -150,7 +156,7 @@ router.post("/profileImage", Signin.authenticateToken, upload.single('image'), a
                         _id: result._id,
                         request: {
                             type: 'GET',
-                            url: "http://localhost:3000/public/images/" + req.file.filename
+                            url: "http://localhost:3000/images/"+ req.file.filename
                         }
                     }
                 })
@@ -178,7 +184,7 @@ router.post('/getImage', Signin.authenticateToken, async (req, res) => {
         const path = result[0]['image']
         const afterRegex = path.replace(/\/\//g, "/")
         console.log(result)
-        res.status(200).json({url: "http://localhost:3000/public/images/" + result[0]['imageName']})
+        res.status(200).json({url: "http://localhost:3000/images/" + result[0]['imageName']})
     }
 
 });

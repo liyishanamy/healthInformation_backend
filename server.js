@@ -10,6 +10,8 @@ const cors = require('cors')
 
 mongoose.connect(process.env.DATABASE_URL,{useUnifiedTopology:true})
 const db = mongoose.connection
+
+
 app.use(express.json())
 app.use(express.static('public'));
 //Serves all the request which includes /images in the url from Images folder
