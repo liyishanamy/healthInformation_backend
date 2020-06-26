@@ -28,8 +28,7 @@ router.post('/', Signin.authenticateToken, async (req, res) => {
     if (findUsers == null) {
         return res.status(404).json({message: "cannot find user"})
     }
-    console.log(requestPerson)
-    console.log(req.body.email)
+
     if (requestPerson===req.body.email) {
         console.log("first time")
         // Check last health status record
@@ -63,7 +62,7 @@ router.post('/', Signin.authenticateToken, async (req, res) => {
             if (req.body.temperature < 37 && req.body.symptom.length === 0) {
                 // get better
                 updatedDays = recentRecord[0]['daysOfNoSymptom'] + 1
-                if(updatedDays>=7){
+                if(updatedDays>=2){
                     const filterPatient = await patientsNotification.find({userEmail:req.body.email})
                     const notification = new patientsNotification({
                         userEmail: req.body.email,
@@ -118,7 +117,7 @@ router.post('/', Signin.authenticateToken, async (req, res) => {
                 if(recentRecord[0]['temperature']>37 || recentRecord[0]['symptom'].length!==0){
                     updatedDays = recentRecord[0]['daysOfNoSymptom'] + 1
                 }
-                if(updatedDays>=7){
+                if(updatedDays>=2){
                     const filterPatient = await patientsNotification.find({userEmail:req.body.email})
                     const notification = new patientsNotification({
                         userEmail: req.body.email,
@@ -229,13 +228,18 @@ router.post('/symptom/', Signin.authenticateToken,async (req,res)=>{
     const findPatientEmail = req.body.email
     const patientRecord = await Users.find({"email":findPatientEmail})
     var requestPerson = await Users.find({"email": req.user["email"]}, null, {limit: 1})
+    var patient = await HealthStatus.aggregate([{$match:{patientEmail:findPatientEmail}},{$project:{Date:1,symptom:1}}])
+
     if(requestPerson[0]["role"]==="doctor"){
-        var patient = await HealthStatus.aggregate([{$match:{patientEmail:findPatientEmail}},{$project:{Date:1,symptom:1}}])
 
         res.status(200).json(patient)
 
     }else if (requestPerson[0]["role"]==="patient"){
-        res.status(403).json({message:"You do not have permission"})
+        if(findPatientEmail===req.user["email"]){
+            res.status(200).json(patient)
+        }else{
+            res.status(403).json({message:"You do not have permission"})
+        }
 
     }
 })
@@ -274,6 +278,24 @@ router.post('/symptom/count', Signin.authenticateToken,async (req,res)=>{
         breatheHard:breatheHard
 
     })
+
+})
+router.post('/daysHavingNoSymptoms',Signin.authenticateToken, async (req,res)=>{
+    const findPatientEmail = req.body.email
+    const patientRecord = await Users.find({"email":findPatientEmail})
+    var requestPerson = await Users.find({"email": req.user["email"]}, null, {limit: 1})
+    //var patient = await HealthStatus.aggregate([{$match:{patientEmail:findPatientEmail}},{$project:{daysOfNoSymptom:1}}])
+    var recentRecord = await HealthStatus.find({patientEmail: req.body.email}).sort({"Date": -1}).limit(1)
+    if(requestPerson[0]["role"]==="doctor"){
+        res.status(200).json({daysOfNoSymptom:recentRecord[0]['daysOfNoSymptom']})
+    }else if (requestPerson[0]["role"]==="patient"){
+        if(findPatientEmail===req.user["email"]){
+            res.status(200).json({daysOfNoSymptom:recentRecord[0]['daysOfNoSymptom']})
+        }else{
+            res.status(403).json({message:"You do not have permission"})
+        }
+
+    }
 
 
 })

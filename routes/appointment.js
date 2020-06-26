@@ -6,7 +6,11 @@ var mongoose = require('mongoose');
 const Appointment = require('../models/appointment')
 const Timeslot = require('../models/appointmentTimeSlot')
 ObjectId = require('mongodb').ObjectID
+router.get('/availableDate',Signin.authenticateToken,async (req, res)=>{
+    const queryDate = req.query['date']
+    //const findDateAvaliability
 
+})
 // Book an appointment - I assume one appointment lasts 30 mins
 router.post('/', Signin.authenticateToken, async (req, res) => {
     const requestUser = req.user["email"]
