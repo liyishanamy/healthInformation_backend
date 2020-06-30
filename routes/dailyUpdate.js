@@ -99,6 +99,7 @@ router.post('/', Signin.authenticateToken, async (req, res) => {
             res.status(201).json(newDayUpdate)
         } else if (recentRecord.length === 1 && recentRecord[0]["Date"].setHours(0, 0, 0, 0) === new Date().setHours(0, 0, 0, 0)) {
             console.log("We have your records today")
+            await HealthStatus.deleteOne({_id:recentRecord[0]["_id"]})
 
             var recentRecord = await HealthStatus.find({patientEmail: req.body.email}).sort({"Date": -1}).limit(1)
 
@@ -112,10 +113,10 @@ router.post('/', Signin.authenticateToken, async (req, res) => {
                 // get better
                 if(recentRecord[0]['temperature']<37 && recentRecord[0]['symptom'].length===0){
                     // Better last update
-                    updatedDays = recentRecord[0]['daysOfNoSymptom']
+                    updatedDays = recentRecord[0]['daysOfNoSymptom']+1
                 }
                 if(recentRecord[0]['temperature']>37 || recentRecord[0]['symptom'].length!==0){
-                    updatedDays = recentRecord[0]['daysOfNoSymptom'] + 1
+                    updatedDays = recentRecord[0]['daysOfNoSymptom']
                 }
                 if(updatedDays>=2){
                     const filterPatient = await patientsNotification.find({userEmail:req.body.email})
@@ -144,9 +145,8 @@ router.post('/', Signin.authenticateToken, async (req, res) => {
                 symptom: req.body.symptom,// Give me an array of symptoms,
                 Date: req.body.Date
             })
-            console.log(recentRecord)
-            console.log(recentRecord[0]["_id"])
-            await HealthStatus.deleteOne({_id:recentRecord[0]["_id"]})
+
+            //await HealthStatus.deleteOne({_id:recentRecord[0]["_id"]})
 
             console.log("delete")
             const newDayUpdate = await dailyUpdate.save()
@@ -286,6 +286,7 @@ router.post('/daysHavingNoSymptoms',Signin.authenticateToken, async (req,res)=>{
     var requestPerson = await Users.find({"email": req.user["email"]}, null, {limit: 1})
     //var patient = await HealthStatus.aggregate([{$match:{patientEmail:findPatientEmail}},{$project:{daysOfNoSymptom:1}}])
     var recentRecord = await HealthStatus.find({patientEmail: req.body.email}).sort({"Date": -1}).limit(1)
+    console.log(recentRecord)
     if(requestPerson[0]["role"]==="doctor"){
         res.status(200).json({daysOfNoSymptom:recentRecord[0]['daysOfNoSymptom']})
     }else if (requestPerson[0]["role"]==="patient"){
@@ -294,7 +295,6 @@ router.post('/daysHavingNoSymptoms',Signin.authenticateToken, async (req,res)=>{
         }else{
             res.status(403).json({message:"You do not have permission"})
         }
-
     }
 
 

@@ -6,9 +6,37 @@ var mongoose = require('mongoose');
 const Appointment = require('../models/appointment')
 const Timeslot = require('../models/appointmentTimeSlot')
 ObjectId = require('mongodb').ObjectID
-router.get('/availableDate',Signin.authenticateToken,async (req, res)=>{
-    const queryDate = req.query['date']
-    //const findDateAvaliability
+//Given a date, return all the available time period back.
+router.post('/availableDate',Signin.authenticateToken,async (req, res)=>{
+    const queryDate = req.body['date']
+    console.log(req.query)
+    if (!queryDate){
+        res.status(400).json({message:"You must select an appointment date"})
+    }else {
+        console.log(new Date(queryDate).setHours(0, 0, 0, 0))
+        const findDateAvaliability = await Timeslot.find({date: new Date(queryDate).setHours(0, 0, 0, 0)})
+        //const findDateAvaliability = await Timeslot.find({date: queryDate})
+        console.log("findDateAvaliability", findDateAvaliability)
+        if (findDateAvaliability.length===0) {
+            res.status(200).json({results: [{"hour": 9, "minute": 0},
+                    {"hour": 9, "minute": 30},{"hour": 10, "minute": 0},
+                    {"hour": 10, "minute": 30},{"hour": 11, "minute": 0},
+                    {"hour": 11, "minute": 30},{"hour": 13, "minute": 0},
+                    {"hour": 13, "minute": 30},{"hour": 14, "minute": 0},
+                    {"hour": 14, "minute": 30},{"hour": 15, "minute": 0},
+                    {"hour": 15, "minute": 30},{"hour": 16, "minute": 0},
+                    {"hour": 16, "minute": 30},{"hour": 17, "minute": 0},
+                ]
+            })
+            console.log("Not found")
+
+        }else{
+            const timeslot = findDateAvaliability[0]['availableTimeSlot']
+            console.log(timeslot)
+            res.status(200).json({results:timeslot})
+            console.log("found")
+        }
+    }
 
 })
 // Book an appointment - I assume one appointment lasts 30 mins
@@ -71,7 +99,7 @@ router.post('/', Signin.authenticateToken, async (req, res) => {
 
                 await appointment.save()
                 res.status(200).json(appointment)
-            } else if (findDate.length === 1) {// Someone has already booked an appoint on that particular date
+            } else if (findDate.length === 1) {// Someone has already booked an appointment on that particular date
                 // Check to see if the chosen timeslot has been picked by other people
                 const findAvailability = findDate[0]["availableTimeSlot"]
                 console.log(findAvailability)
@@ -207,19 +235,32 @@ router.put('/testResult', Signin.authenticateToken, async (req, res) => {
 
 
 // Patient can view her own appointment
-router.get('/myAppointment', Signin.authenticateToken, async (req, res) => {
+router.post('/myAppointment', Signin.authenticateToken, async (req, res) => {
     const requestUser = req.user["email"]
+    const target = req.body['email']
+    //Find doctor record
     const findUser = await Users.find({email: requestUser})
     // Check to see if this user has already booked an appointment
-    const bookAppointment = await Appointment.find({patientId: findUser[0]['_id']})
-    if (findUser[0]['role'] === "doctor") {
+    const bookAppointment = await Appointment.find({patientEmail: target})
+    const findPatientList = findUser[0]['patientList']
+
+
+
+    if (findUser[0]['role'] === "doctor" && findPatientList.includes(target)) {
+        res.status(200).json(bookAppointment)
+    }
+    else if(findUser[0]['role'] === "doctor" && !findPatientList.includes(target)) {
         res.status(403).json({message: "You do not have permission"})
-    } else if (findUser[0]['role'] === 'patient') {
+        //Patient wants to see his own appointment
+    } else if (findUser[0]['role'] === 'patient' && requestUser===target) {
         if (bookAppointment.length === 0) {
             res.status(404).json({message: "You do not have a booked appointment yet."})
         } else if (bookAppointment.length === 1) {
             res.status(200).json(bookAppointment)
         }
+        //Patient wants to see other patient's appointment
+    } else if (findUser[0]['role'] === 'patient' && requestUser!==target){
+        res.status(403).json({message:"You do not have permission"})
     }
 
 })
