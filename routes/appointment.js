@@ -164,7 +164,7 @@ router.put('/testDone', Signin.authenticateToken, async (req, res) => {
     const patientList = findUser[0]['patientList']
     const patientEmail = req.body.patientEmail;
     const findPatient = await Users.find({email:patientEmail})
-    if(!findPatient){
+    if(findPatient.length===0){
         res.status(404).json({message:"Cannot find patient email"})
     }
     const patientId = findPatient[0]['_id']
@@ -202,7 +202,7 @@ router.put('/testResult', Signin.authenticateToken, async (req, res) => {
     const patientList = findUser[0]['patientList']
     const patientEmail = req.body.patientEmail;
     const findPatient = await Users.find({email:patientEmail})
-    if(!findPatient){
+    if(findPatient.length===0){
         res.status(404).json({message:"Cannot find patient email"})
     }
     const patientId = findPatient[0]['_id']
