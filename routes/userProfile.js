@@ -173,17 +173,15 @@ router.post("/profileImage", Signin.authenticateToken, upload.single('image'), a
 })
 // Get the profile image
 router.post('/getImage', Signin.authenticateToken, async (req, res) => {
-    const userEmail = req.user['email']
+    const userEmail = req.body['userEmail']
 
     const result = await ProfileImage.find({userEmail: userEmail})
-    console.log("res", result)
-    if (res.length === 0) {
+    if (result.length === 0) {
         res.status(404).json({message: "Cannot find the profile image"})
     } else {
         console.log("C:\\backup\\".replace(/\/\//g, "/"))
         const path = result[0]['image']
         const afterRegex = path.replace(/\/\//g, "/")
-        console.log(result)
         res.status(200).json({url: "http://localhost:3000/images/" + result[0]['imageName']})
     }
 
