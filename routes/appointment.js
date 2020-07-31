@@ -266,7 +266,7 @@ router.post('/myAppointment', Signin.authenticateToken, async (req, res) => {
 })
 
 // Doctor can view all the appointments made by the patients
-router.get('/allPatients', Signin.authenticateToken, async (req, res) => {
+router.get('/allPatients', Signin.authenticateToken,paginatedResults(Appointment), async (req, res) => {
     const requestUser = req.user["email"]
     const findUser = await Users.find({email: requestUser})
     const doctorId = findUser[0]['_id']
@@ -274,10 +274,10 @@ router.get('/allPatients', Signin.authenticateToken, async (req, res) => {
     const date_to = req.query.to
 
     if (findUser[0]['role'] === "doctor") {
-        const findPatients  =await Appointment.find({appointmentStart: {$gte: date_from, $lt: date_to},myDoctorId: doctorId})
-        console.log(findPatients)
+       // const findPatients  =await Appointment.find({appointmentStart: {$gte: date_from, $lt: date_to},myDoctorId: doctorId})
+        //console.log(findPatients)
 
-        res.status(200).json({findPatients})
+        res.status(200).json(res.patientAppointmentData)
     } else if (findUser[0]['role'] === "patient") {
         res.status(403).json({message: "You do not have permission"})
     }
@@ -361,6 +361,74 @@ router.get('/stats', Signin.authenticateToken, async (req, res) => {
 
 
 })
+
+
+
+function paginatedResults(model) {
+    return async (req, res, next) => {
+        const page = parseInt(req.query.page)
+        const limit = parseInt(req.query.limit)
+
+        const requestUser = req.user["email"]
+        const findUser = await Users.find({email: requestUser})
+        const doctorId = findUser[0]['_id']
+        const date_from = req.query.from
+        const date_to = req.query.to
+
+        console.log("page",page)
+        console.log("limit",limit)
+        const startIndex = (page - 1) * limit
+        const endIndex = page * limit
+
+        const results = {}
+
+        if (endIndex < await model.countDocuments().exec()) {
+            results.next = {
+                page: page + 1,
+                limit: limit
+            }
+        }
+        if (startIndex > 0) {
+            results.previous = {
+                page: page - 1,
+                limit: limit
+            }
+        }
+
+
+        const findUsers = await Users.find({"email": req.user["email"]})
+        const role = findUsers[0]["role"]
+
+        var patientAppointmentData;
+
+        if (role === "doctor") {
+            const patients = findUsers[0]["patientList"]
+            //patientAppointmentData= await model.find({patientEmail: {$in: patients}},null,{limit:limit,skip:startIndex})
+            patientAppointmentData  =await model.find({appointmentStart: {$gte: date_from, $lt: date_to},myDoctorId: doctorId},null,{limit:limit,skip:startIndex})
+
+
+        }
+        if(role==="patient"){
+            patientAppointmentData="You do not have permission"
+        }
+
+
+
+        //200 case
+        try {
+            res.patientAppointmentData= patientAppointmentData
+            next()
+        } catch (e) {
+            res.status(500).json({message: e.message})
+        }
+    }
+
+
+}
+
+
+
+
 
 
 

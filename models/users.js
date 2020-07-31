@@ -73,7 +73,7 @@ const userSchema = new mongoose.Schema({
     createdDate: {
         type: Date,
         required: true,
-        default: Date.now
+        default: new Date(Date.now()).setHours(0,0,0,0)
     },
     phone: {
         type: String,

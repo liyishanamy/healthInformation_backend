@@ -107,6 +107,26 @@ router.get('/totalPatients', Signin.authenticateToken, async (req,res)=> {
     }
 })
 
+// Get people who joined on particular date(today)
+router.get('/totalJoinPatients', Signin.authenticateToken, async (req,res)=> {
+    var joinDate = req.query["queryDate"]
+    const findUser= await Users.find({"email":req.user["email"]})
+    const findPatients = findUser[0]["patientList"]
+    console.log("find patient",findPatients)
+    joinDate = new Date(joinDate)
+    console.log("format date",new Date(joinDate).getFullYear(), new Date(joinDate).getMonth(),new Date(joinDate).getUTCDate())
+    joinDate = new Date(new Date(joinDate).getFullYear(), new Date(joinDate).getMonth(),new Date(joinDate).getUTCDate())
+    console.log(joinDate)
+
+    const target = await Users.find({createdDate: {$eq: joinDate},email:{$in : findPatients}})
+    console.log(target)
+    const role = findUser[0]["role"]
+    if (role === "doctor"){
+        res.status(200).json({totalJoinPatients:target.length})
+    }if (role==="patient"){
+        res.status(403).json({message:"You don't have permission"})
+    }
+})
 
 // Get the gender=0,1,2 number(male,female,other)
 router.get('/gender',  Signin.authenticateToken, async (req,res)=>{
@@ -450,16 +470,12 @@ function paginatedResults(model) {
 
             //200 case
             try {
-
-
                 res.patientData= patientData
                 next()
             } catch (e) {
                 res.status(500).json({message: e.message})
             }
         }
-
-
 
 
         }
