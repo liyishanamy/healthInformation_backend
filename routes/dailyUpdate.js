@@ -30,6 +30,7 @@ router.post('/', Signin.authenticateToken, async (req, res) => {
     }
 
     if (requestPerson===req.body.email) {
+
         console.log("first time")
         // Check last health status record
         var recentRecord = await HealthStatus.find({patientEmail: req.body.email}).sort({"Date": -1}).limit(1)
@@ -51,6 +52,9 @@ router.post('/', Signin.authenticateToken, async (req, res) => {
                 daysOfNoSymptom: updatedDays,
                 temperature: req.body.temperature,
                 symptom: req.body.symptom,// Give me an array of symptoms,
+                placesFrom:req.body.placesFrom,
+                placesTo:req.body.placesTo,
+                mask:req.body.mask,
                 Date: req.body.Date
             })
             const newDayUpdate = await dailyUpdate.save()
@@ -93,7 +97,10 @@ router.post('/', Signin.authenticateToken, async (req, res) => {
                 temperature: req.body.temperature,
                 daysOfNoSymptom: updatedDays,
                 symptom: req.body.symptom,// Give me an array of symtoms,
-                Date: req.body.Date
+                Date: req.body.Date,
+                placesFrom:req.body.placesFrom,
+                placesTo:req.body.placesTo,
+                mask:req.body.mask,
             })
             const newDayUpdate = await dailyUpdate.save()
             res.status(201).json(newDayUpdate)
@@ -143,7 +150,11 @@ router.post('/', Signin.authenticateToken, async (req, res) => {
                 daysOfNoSymptom: updatedDays,
                 temperature: req.body.temperature,
                 symptom: req.body.symptom,// Give me an array of symptoms,
-                Date: req.body.Date
+                Date: req.body.Date,
+                placesFrom:req.body.placesFrom,
+                placesTo:req.body.placesTo,
+                mask:req.body.mask,
+
             })
 
             //await HealthStatus.deleteOne({_id:recentRecord[0]["_id"]})

@@ -29,6 +29,18 @@ const healthStatusSchema = new mongoose.Schema({
         type:Date,
         required:true,
         default: Date.now()
+    },
+    placesFrom:{
+        type:String,
+        required:false,
+    },
+    placesTo:{
+        type:String,
+        required:false,
+    },
+    mask:{
+        type:Boolean,
+        required:false
     }
 });
 
