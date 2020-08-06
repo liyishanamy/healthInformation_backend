@@ -49,6 +49,11 @@ app.use('/invite',invite)
 const dailyUpdate = require("./routes/dailyUpdate")
 app.use('/healthStatus', dailyUpdate)
 
+
+//Patient health track
+const healthTrack = require("./routes/healthTracking")
+app.use('/healthTrack', healthTrack)
+
 // Security questions setting
 const securityQuestions = require("./routes/securityQuestions")
 app.use('/security-questions',securityQuestions)

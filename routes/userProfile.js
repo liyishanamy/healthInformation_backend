@@ -174,8 +174,8 @@ router.post("/profileImage", Signin.authenticateToken, upload.single('image'), a
 // Get the profile image
 router.post('/getImage', Signin.authenticateToken, async (req, res) => {
     const userEmail = req.body['userEmail']
-
     const result = await ProfileImage.find({userEmail: userEmail})
+    console.log(userEmail,result)
     if (result.length === 0) {
         res.status(404).json({message: "Cannot find the profile image"})
     } else {
@@ -189,13 +189,13 @@ router.post('/getImage', Signin.authenticateToken, async (req, res) => {
 // Change a profile picture
 router.put('/changeProfileImage', Signin.authenticateToken, upload.single('image'), async (req, res) => {
     console.log(req.file)
-    ProfileImage.updateOne({userEmail: req.user['email']}, {$set: {image: req.file.path}})
+    ProfileImage.updateOne({userEmail: req.user['email']}, {$set: {image: req.file.path,imageName:req.file.filename}})
         .exec()
         .then(result => {
             res.status(200).json({
                 message: 'Profile image updated',
                 request: {
-                    type: 'GET',
+                    type: 'PUT',
                     url: "http://localhost:3000/public/images/" + req.file.filename
                 }
             });

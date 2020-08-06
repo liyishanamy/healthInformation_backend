@@ -170,6 +170,8 @@ router.post('/', Signin.authenticateToken, async (req, res) => {
 
 })
 
+
+
 // Doctor view all the patients health status(good/bad/non-reporting) for one day
 router.get('/stats', Signin.authenticateToken, async (req, res) => {
     var requestPerson = await Users.find({"email": req.user["email"]}, null, {limit: 1})
