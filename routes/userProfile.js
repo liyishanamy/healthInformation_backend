@@ -110,7 +110,9 @@ router.post('/', Signin.authenticateToken, async (req, res) => {
 
 //Update the profiles
 router.put('/', Signin.authenticateToken, async (req, res) => {
+    console.log("request user",req.user)
     const findUsers = await Users.find({"email": req.user["email"]}, null, {limit: 1})
+    console.log("findUsers",findUsers)
     const requestPerson = findUsers[0]["_id"]
     const putBody = req.body.email
     if (putBody === req.user['email']) {
@@ -196,7 +198,7 @@ router.put('/changeProfileImage', Signin.authenticateToken, upload.single('image
                 message: 'Profile image updated',
                 request: {
                     type: 'PUT',
-                    url: "http://localhost:3000/public/images/" + req.file.filename
+                    url: "http://localhost:3000/images/" + req.file.filename
                 }
             });
         })

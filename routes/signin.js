@@ -10,13 +10,16 @@ let refreshTokens = []
 //Generate renew token using refresh token
 router.post('/token',(req,res)=>{
     const refreshToken = req.body.token
-    console.log("refresh",refreshToken)
+
     if(refreshToken==null) return res.send(401)
     if(!refreshTokens.includes(refreshToken))return res.status(403).json({message:"Forbidden"})
     jwt.verify(refreshToken,process.env.REFRESH_TOKEN_SECRET,(err,user)=>{
-        if (err)return res.status(403).json({message:err.name})
-        const accessToken=generateAccessToken({name:user.name})
+        if (err)return res.status(403).json({message:"The refresh token expires"})
+        const accessToken=generateAccessToken({email:user.email})
         res.status(200).json({accessToken:accessToken})
+        console.log("userrrr",user)
+        req.user = user
+
     })
 })
 
@@ -38,7 +41,8 @@ router.post('/login',async (req,res)=>{
     try{
         if(await bcrypt.compare(req.body.password,user[0].password)){
             const accessToken = generateAccessToken(useremail)
-            const refreshToken = jwt.sign(useremail,process.env.REFRESH_TOKEN_SECRET)
+            // Refresh token also expires
+            const refreshToken = jwt.sign(useremail,process.env.REFRESH_TOKEN_SECRET,{expiresIn: '30s'})
             refreshTokens.push(refreshToken)
             // Get the user information
             const findUser = await Users.find({"email":req.body.email})
@@ -83,7 +87,7 @@ async function authenticateAuthHeader({username,password}) {
 
 
 function generateAccessToken(user){
-    return jwt.sign(user,process.env.ACCESS_TOKEN_SECRET,{expiresIn: '10000s'})
+    return jwt.sign(user,process.env.ACCESS_TOKEN_SECRET,{expiresIn: '15s'})
 }
 
 async function authenticateToken(req, res, next) {
@@ -99,9 +103,11 @@ async function authenticateToken(req, res, next) {
     if (header === "Bearer") { // access token
         jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, user) => {
             if (err) return res.status(403).json({"status":"403","message": "the token is invalid"})
+            console.log("check user",user)
             req.user = user
             next()
         })
+
     }
     if (header === "Basic") { // basic auth
         const credentials = Buffer.from(token, 'base64').toString('ascii');
