@@ -3,12 +3,30 @@ const router = express.Router()
 const Users = require('../models/users')
 const Signin=require('./signin')
 const security = require('../models/securityQuestions')
+// Change the security answers
+router.put('/',Signin.authenticateToken,async (req,res)=>{
+    const findUsers = await security.find({userEmail: req.user["email"]}, null, {limit: 1})
+    console.log("findUsers",findUsers)
 
+    const putBody = req.body.email
+    if (putBody === req.user['email']) {
+        var conditions = {userEmail: req.user['email']}
+        security.update(conditions, req.body.update)
+            .then(doc => {
+                if (!doc) {
 
+                    return res.status(404).end()
+                }
+                return res.status(200).json({"message": "update your security questions successfully!"})
+            })
+    } else {
+        res.status(403).json({"message": "You do not have permission"})
+    }
+
+})
 // set the security questions
 router.post('/',Signin.authenticateToken,async (req,res)=>{
     var findUsers =  await Users.find({"email":req.user["email"]},null,{limit:1})
-    console.log(req.body)
     const questions = new security({
         userEmail:req.body.userEmail,
         question1:{"question_1":req.body.question1.question_1, "answer_1":req.body.question1.answer_1},
@@ -49,6 +67,31 @@ router.post('/getQuestions',async (req,res)=>{
     else if(findUsers.length===0){
         res.status(404).json({message:"The user has not set the security questions yet"})
     }
+
+})
+// Get the security questions answers
+router.post('/getAnswers',Signin.authenticateToken,async (req,res)=>{
+    const requestUser = req.user["email"]
+    const userEmail = req.body.email
+    var findUsers =  await security.find({userEmail:userEmail})
+
+    if(userEmail===requestUser){
+        if(findUsers.length===1){
+            res.status(200).json({answer1: findUsers[0].question1["answer_1"],answer2: findUsers[0].question2["answer_2"],
+                answer3: findUsers[0].question3["answer_3"]})
+        }
+        else if(findUsers.length===0){
+            res.status(404).json({message:"The user has not set the security questions yet"})
+        }
+    }else{
+        res.status(403).json({message:"You do not have permission"})
+    }
+
+
+
+
+
+
 
 })
 

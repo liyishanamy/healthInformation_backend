@@ -42,7 +42,7 @@ router.post('/login',async (req,res)=>{
         if(await bcrypt.compare(req.body.password,user[0].password)){
             const accessToken = generateAccessToken(useremail)
             // Refresh token also expires
-            const refreshToken = jwt.sign(useremail,process.env.REFRESH_TOKEN_SECRET,{expiresIn: '30s'})
+            const refreshToken = jwt.sign(useremail,process.env.REFRESH_TOKEN_SECRET,{expiresIn: '100000s'})
             refreshTokens.push(refreshToken)
             // Get the user information
             const findUser = await Users.find({"email":req.body.email})
@@ -87,7 +87,7 @@ async function authenticateAuthHeader({username,password}) {
 
 
 function generateAccessToken(user){
-    return jwt.sign(user,process.env.ACCESS_TOKEN_SECRET,{expiresIn: '15s'})
+    return jwt.sign(user,process.env.ACCESS_TOKEN_SECRET,{expiresIn: '100000s'})
 }
 
 async function authenticateToken(req, res, next) {
