@@ -6,16 +6,8 @@ const Signin = require('./signin')
 const Users = require('../models/users')
 const patientsNotification = require('../models/patientsNotification')
 var mongoose = require('mongoose');
-//const rateLimit = require("express-rate-limit");
 ObjectId = require('mongodb').ObjectID
-/**
- const limiter = rateLimit({
-    //windowMs: 60 * 60 * 24 * 1000, //24 hours
-    windowMs: 1 * 60 * 1000,// test for 1 min
-    max: 1, // limit each IP to 100 requests per windowMs
-    message: "You can only submit daily request once a day",
-    headers:true
-});*/
+
 // Generate daily health status
 router.post('/', Signin.authenticateToken, async (req, res) => {
     const findUsers = await Users.find({"email": req.user["email"]})
