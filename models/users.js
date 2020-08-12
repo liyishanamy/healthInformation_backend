@@ -78,7 +78,18 @@ const userSchema = new mongoose.Schema({
     phone: {
         type: String,
         required: true
+    },
+    active: {
+        type: Boolean,
+        required: true,
+        default:true
+    },
+    result:{
+        type:String,
+        required:false,
+
     }
+
 
 });
 

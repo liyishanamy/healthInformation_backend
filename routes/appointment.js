@@ -5,6 +5,8 @@ const Users = require('../models/users')
 var mongoose = require('mongoose');
 const Appointment = require('../models/appointment')
 const Timeslot = require('../models/appointmentTimeSlot')
+const patientsNotification = require('../models/patientsNotification')
+const HealthStatus = require('../models/healthStatus')
 ObjectId = require('mongodb').ObjectID
 //Given a date, return all the available time period back.
 router.post('/availableDate',Signin.authenticateToken,async (req, res)=>{
@@ -211,8 +213,16 @@ router.put('/testResult', Signin.authenticateToken, async (req, res) => {
         if (findUser[0]['role'] === "doctor") {
             if (patientList.includes(patientEmail)) {
                 const update = await Appointment.updateOne({"patientId": patientId}, {$set: {"testResult": testResult}})
-                if (update.nModified !== 0) {
-                    res.status(200).json({message: "Test has been updated."})
+                const updateUser = await Users.updateOne({_id: patientId}, {$set: {"result": testResult}})
+
+                if (update.nModified !== 0 && updateUser.nModified!==0) {
+                    if(testResult==="positive"){
+                        // Remove this patient from the patient notification collection
+                        await patientsNotification.deleteOne({"userEmail": patientEmail})
+                        // Set the "daysOfNoSymptoms" to 0 in health status collection
+                        await HealthStatus.updateMany({patientEmail:patientEmail},{$set:{daysOfNoSymptom:0}})
+                    }
+                    res.status(200).json({message: "Test result has been updated."})
                 } else {
                     // Did not update any entry
                     const findPatient = await Appointment.find({patientId: patientId})

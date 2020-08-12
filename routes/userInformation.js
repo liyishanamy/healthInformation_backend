@@ -250,7 +250,8 @@ router.post('/signup', async (req,res)=>{
                 age:userAge,
                 email:req.body.email,
                 password:hashedPassword,
-                confirmedPassword:hashedPassword
+                confirmedPassword:hashedPassword,
+                result:"positive"
             })
         }
     console.log(user)
@@ -379,15 +380,63 @@ router.patch('/:id',getUsers,async (req,res)=>{
         res.status(400).json({message:err.message})
     }
 })
-router.delete('/:id',getUsers, async (req,res)=>{
-    try{
-        await res.user.remove();
-        res.json({message:'Delete'})
-    }catch(err){
-        res.status(500).json({message:err.message})
+
+router.post('/archive',Signin.authenticateToken, async (req,res)=>{
+    const email = req.user["email"]
+    const patientEmail = req.body.patientEmail
+    const findUser = await Users.find({email:email})
+    const findPatient= await Users.find({email:patientEmail})
+    let patients = findUser[0]["patientList"]
+    console.log("findUserdelete",findPatient)
+
+    if(findPatient.length===0){
+        res.status(404).json({message:"Cannot find the patient"})
+    }else{
+
+        if(findUser[0]["role"]==="doctor" && patients.includes(patientEmail)){
+            //await Users.remove({email:patientEmail})
+            patients = patients.filter(item=>item!==patientEmail)
+
+            // Remove the user from the active patient lists
+            await Users.update({email:email},{$set:{patientList: patients}})
+            await Users.update({email:patientEmail},{$set:{active:false}})
+            // await archiveUser.save()
+            res.status(200).json({message:'The user has been successfully archived'})
+        }else if(findUser[0]["role"]==="patient"){
+            res.status(403).json({message:"You do not have permission"})
+        }
     }
+
+
 })
 
+router.post('/activate',Signin.authenticateToken, async (req,res)=>{
+    const email = req.user["email"]
+    const patientEmail = req.body.patientEmail
+    const findUser = await Users.find({email:email})
+    const findPatient= await Users.find({email:patientEmail})
+    let patients = findUser[0]["patientList"]
+
+    if(findPatient.length===0){
+        res.status(404).json({message:"Cannot find the patient"})
+    }else{
+
+        if(findUser[0]["role"]==="doctor" && !patients.includes(patientEmail)){
+            //await Users.remove({email:patientEmail})
+            patients = patients.concat(patientEmail)
+
+            // Remove the user from the active patient lists
+            await Users.update({email:email},{$set:{patientList: patients}})
+            await Users.update({email:patientEmail},{$set:{active:true}})
+            // await archiveUser.save()
+            res.status(200).json({message:'The user has been successfully activated'})
+        }else if(findUser[0]["role"]==="patient"){
+            res.status(403).json({message:"You do not have permission"})
+        }
+    }
+
+
+})
 async function getUsers(req,res,next) {
     let user;
     try {
@@ -479,15 +528,5 @@ function paginatedResults(model) {
 
 
         }
-
-
-
-
-
-
-
-
-
-
 
 module.exports=router

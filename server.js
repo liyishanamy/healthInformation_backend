@@ -67,4 +67,6 @@ app.use('/notification',patientDays)
 const appointment = require("./routes/appointment")
 app.use('/appointment', appointment)
 
+
+
 app.listen(3000,()=>console.log('server started'))

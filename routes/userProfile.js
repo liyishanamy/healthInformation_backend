@@ -57,7 +57,8 @@ router.post('/', Signin.authenticateToken, async (req, res) => {
                 age: findUser[0]['age'],
                 email: findUser[0]['email'],
                 patientList: findUser[0]['patientList'],
-                invitationCode: findUser[0]['invitationCode']
+                invitationCode: findUser[0]['invitationCode'],
+
             })
 
         } else if (bodyEmail !== requestPerson && patientList.includes(bodyEmail)) {
@@ -75,7 +76,8 @@ router.post('/', Signin.authenticateToken, async (req, res) => {
                 phone: findUser[0]['phone'],
                 age: findUser[0]['age'],
                 email: findUser[0]['email'],
-                myDoctor: findUser[0]['myDoctor']
+                myDoctor: findUser[0]['myDoctor'],
+                result:findUser[0]['result']
             })
 
         } else {

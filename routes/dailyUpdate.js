@@ -1,7 +1,6 @@
 const express = require('express')
 const router = express.Router()
 const HealthStatus = require('../models/healthStatus')
-const Invitation = require('../models/invitations')
 const Signin = require('./signin')
 const Users = require('../models/users')
 const patientsNotification = require('../models/patientsNotification')
