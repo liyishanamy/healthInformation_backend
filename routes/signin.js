@@ -33,12 +33,13 @@ router.delete('/logout', authenticateToken,(req,res)=>{
 router.post('/login',async (req,res)=>{
    // const user = Users.find(user=>user.email=req.body.email)
    const user = await Users.find({email:req.body.email},null,{limit:1})
-    console.log(user)
+   // console.log("login",user[0]["active"],typeof user[0]["active"])
     if(user.length===0){
         return res.status(401).json({'message':'Authentication failed'})
     }
     const useremail={email:req.body.email}
     try{
+
         if(await bcrypt.compare(req.body.password,user[0].password)){
             const accessToken = generateAccessToken(useremail)
             // Refresh token also expires
@@ -54,15 +55,22 @@ router.post('/login',async (req,res)=>{
                 postcode:user['postcode'],birthday:user['birthday'],age:user['age'],patientList:user['patientList'],createdDate:user['createdDate']})
             }
             else if(user['role'] ==='patient'){
-                res.status(200).json({accessToken:accessToken, refreshToken:refreshToken,email:req.body.email,firstname:user['firstname'],
-                    lastname:user['lastname'],gender:user['gender'],role:user['role'],invitation:user['invitation'],street:user['street'],city:user['city'],state:user['state'],
-                    postcode:user['postcode'],birthday:user['birthday'],age:user['age'],createdDate:user['createdDate'],myDoctor:user['myDoctor']})
+                console.log("hi",user["active"])
+                if(user["active"]===false){
+                    console.log("hiii")
+                    res.status(403).json({'message':'You have been archived, Please contact your doctor or admin to activate you.'});
+                }if(user["active"]===true){
+                    res.status(200).json({accessToken:accessToken, refreshToken:refreshToken,email:req.body.email,firstname:user['firstname'],
+                        lastname:user['lastname'],gender:user['gender'],role:user['role'],invitation:user['invitation'],street:user['street'],city:user['city'],state:user['state'],
+                        postcode:user['postcode'],birthday:user['birthday'],age:user['age'],createdDate:user['createdDate'],myDoctor:user['myDoctor']})
+                }
+
             }
-        }else {
+        } else {
             res.status(401).json({'message':'Authentication failed'});
         }
-    }catch{
-        res.status(500).send()
+    }catch(e){
+        res.status(500).json(e)
 
     }
 })

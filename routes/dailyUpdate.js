@@ -290,9 +290,14 @@ router.post('/daysHavingNoSymptoms',Signin.authenticateToken, async (req,res)=>{
     var requestPerson = await Users.find({"email": req.user["email"]}, null, {limit: 1})
     //var patient = await HealthStatus.aggregate([{$match:{patientEmail:findPatientEmail}},{$project:{daysOfNoSymptom:1}}])
     var recentRecord = await HealthStatus.find({patientEmail: req.body.email}).sort({"Date": -1}).limit(1)
-    console.log(recentRecord)
+    console.log("recentRecord",recentRecord)
     if(requestPerson[0]["role"]==="doctor"){
-        res.status(200).json({daysOfNoSymptom:recentRecord[0]['daysOfNoSymptom']})
+        if(recentRecord.length===0){
+            res.status(200).json({daysOfNoSymptom:0})
+
+        }else{
+            res.status(200).json({daysOfNoSymptom:recentRecord[0]['daysOfNoSymptom']})
+        }
     }else if (requestPerson[0]["role"]==="patient"){
         if(findPatientEmail===req.user["email"]){
             res.status(200).json({daysOfNoSymptom:recentRecord[0]['daysOfNoSymptom']})

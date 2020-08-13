@@ -6,11 +6,16 @@ const Signin=require('./signin')
 const Invitation = require('../models/invitations')
 ObjectId = require('mongodb').ObjectID
 var mongoose = require('mongoose');
+
 router.get('/', Signin.authenticateToken, paginatedResults(Users), async (req,res)=> {
     try {
+
         if(res.patientData === "You do not have permission"){
-            res.status(403).json({"message":"You do not have permission"})
-        }else{
+            res.status(403).json({"message":res.patientData})
+        }else if(res.patientData==="You have to add the active filter."){
+            res.status(400).json({message:res.patientData})
+        }
+        else{
             res.status(200).json(res.patientData)
         }
 
@@ -19,79 +24,6 @@ router.get('/', Signin.authenticateToken, paginatedResults(Users), async (req,re
         res.status(500).json({message: err.message})
     }
 })
-/**
-router.get('/', Signin.authenticateToken, paginatedResults(Users), async (req,res)=> {
-    try {
-        // Check the role of the users
-        console.log("res.paginatedResults",res.paginatedResults)
-        const findUsers = await Users.find({"email": req.user["email"]})
-        const role = findUsers[0]["role"]
-        console.log(findUsers)
-        var filterGender = req.query["gender"]
-
-        if (role === "doctor") {
-            const patients = findUsers[0]["patientList"]
-            Users.find({'email': {$in: patients}}, function (err, docs) {
-                if(filterGender!==undefined){
-                    if (filterGender==='0'){
-                        // gender = female
-                        var patientData = docs.filter(function (data) {
-                            return data.gender==="female"
-                        })
-                    }else if (filterGender==='1'){
-                        // gender = male
-                        var patientData = docs.filter(function (data) {
-                            return data.gender==="male"
-                        })
-                    }else if (filterGender==='2'){
-                        // gender = other
-                        var patientData = docs.filter(function (data) {
-                            return data.gender==="other"
-                        })
-                    }
-                    res.status(200).json(patientData)
-                }else{// If no query is specified
-                    res.status(200).json(docs)
-
-                }
-
-            })
-        }
-        if (role === "patient") {
-            res.status(403).json({message: "You don't have permission"})
-        }
-
-        //res.json(users.filter(user=>user.email === req.user.email))
-    } catch (err) {
-        res.status(500).json({message: err.message})
-    }
-})*/
-/**
-router.get('/', Signin.authenticateToken, async (req,res)=>{
-    try{
-
-
-        // Check the role of the users
-        const findUsers = await Users.find({"email":req.user["email"]})
-        const role = findUsers[0]["role"]
-        console.log(findUsers)
-        if (role === "doctor"){
-            const patients = findUsers[0]["patientList"]
-            Users.find({'email':{$in: patients}},function (err,docs) {
-                console.log(docs)
-                res.status(200).json(docs)
-            })
-        }if (role==="patient"){
-
-            res.status(403).json({message:"You don't have permission"})
-        }
-
-        //res.json(users.filter(user=>user.email === req.user.email))
-    }catch(err){
-        res.status(500).json({message:err.message})
-    }
-})*/
-
 
 // Get total patients that belongs to particular doctor
 router.get('/totalPatients', Signin.authenticateToken, async (req,res)=> {
@@ -392,24 +324,55 @@ router.post('/archive',Signin.authenticateToken, async (req,res)=>{
     if(findPatient.length===0){
         res.status(404).json({message:"Cannot find the patient"})
     }else{
+        if(findUser[0]["role"]==="doctor" ){
+            if(findPatient[0]['active']){
+                //await Users.remove({email:patientEmail})
+                patients = patients.filter(item=>item!==patientEmail)
+                // Remove the user from the active patient lists
+                await Users.update({email:email},{$set:{patientList: patients}})
+                await Users.update({email:patientEmail},{$set:{active:false}})
+                // await archiveUser.save()
+                res.status(200).json({message:'The user has been successfully archived',active:false})
+            }else{
+                // already archived
+                res.status(400).json({message:'The user has already been archived',active:false})
+            }
 
-        if(findUser[0]["role"]==="doctor" && patients.includes(patientEmail)){
-            //await Users.remove({email:patientEmail})
-            patients = patients.filter(item=>item!==patientEmail)
-
-            // Remove the user from the active patient lists
-            await Users.update({email:email},{$set:{patientList: patients}})
-            await Users.update({email:patientEmail},{$set:{active:false}})
-            // await archiveUser.save()
-            res.status(200).json({message:'The user has been successfully archived'})
         }else if(findUser[0]["role"]==="patient"){
             res.status(403).json({message:"You do not have permission"})
         }
     }
-
-
 })
+router.post('/getStatus',Signin.authenticateToken, async (req,res)=>{
+    const email = req.user["email"]
+    const patientEmail = req.body.patientEmail
+    const findUser =  await Users.find({email:email})
+    const findPatient= await Users.find({email:patientEmail})
+    console.log("findPatient",findUser)
+    let patients = findUser[0]["patientList"]
+    if(findPatient.length===0){
+        res.status(404).json({message:"Cannot find the patient"})
+    }
+    else{
+        if(findUser[0]["role"]==="doctor" ){
+            if(patients.includes(patientEmail)){
+                // have permission
+                res.status(200).json({"active":findPatient[0]["active"]})
+            }else{
+                // No permission
+                res.status(403).json({message:"You do not have permission"})
+            }
+        }else if(findUser[0]["role"]==="patient"){
+            if(email===patientEmail){
+                //Okay to see status
+                res.status(200).json({"active":findPatient[0]["active"]})
+            }else{
+                res.status(403).json({message:"You do not have permission"})
+            }
+        }}
+    }
 
+)
 router.post('/activate',Signin.authenticateToken, async (req,res)=>{
     const email = req.user["email"]
     const patientEmail = req.body.patientEmail
@@ -420,21 +383,26 @@ router.post('/activate',Signin.authenticateToken, async (req,res)=>{
     if(findPatient.length===0){
         res.status(404).json({message:"Cannot find the patient"})
     }else{
+        if(findUser[0]["role"]==="doctor" ){
+            if(!findPatient[0]['active']){
+                //await Users.remove({email:patientEmail})
+                patients = patients.concat(patientEmail)
 
-        if(findUser[0]["role"]==="doctor" && !patients.includes(patientEmail)){
-            //await Users.remove({email:patientEmail})
-            patients = patients.concat(patientEmail)
+                // Remove the user from the active patient lists
+                await Users.update({email:email},{$set:{patientList: patients}})
+                await Users.update({email:patientEmail},{$set:{active:true}})
+                // await archiveUser.save()
+                res.status(200).json({message:'The user has been successfully activated',active:true})
+            }else{
+                // User already activated
+                res.status(400).json({message:'The user has already been activated',active:true})
 
-            // Remove the user from the active patient lists
-            await Users.update({email:email},{$set:{patientList: patients}})
-            await Users.update({email:patientEmail},{$set:{active:true}})
-            // await archiveUser.save()
-            res.status(200).json({message:'The user has been successfully activated'})
+            }
+
         }else if(findUser[0]["role"]==="patient"){
             res.status(403).json({message:"You do not have permission"})
         }
     }
-
 
 })
 async function getUsers(req,res,next) {
@@ -481,10 +449,12 @@ function paginatedResults(model) {
 
         const findUsers = await Users.find({"email": req.user["email"]})
         const role = findUsers[0]["role"]
+        const patientId = findUsers[0]["_id"]
 
         var patientData;
 
         var filterGender = req.query["gender"]
+        var filterActive = req.query["active"]
         if (role === "doctor") {
             const patients = findUsers[0]["patientList"]
             if (filterGender !== undefined) {
@@ -503,17 +473,25 @@ function paginatedResults(model) {
 
                 }
 
-
             else {// If no query is specified
-                console.log("no gender query")
-                //patientData= await model.find({'email': {$in: patients}}).limit(limit).skip(startIndex)
-                patientData= await model.find({email: {$in: patients}},null,{limit:limit,skip:startIndex})
+                const find=await model.find({myDoctor: patientId,active:filterActive},null,{limit:limit,skip:startIndex})
+                console.log("query",find,filterActive,typeof filterActive)
+
+                if(filterActive==="true"){
+                    patientData= await model.find({email: {$in: patients},active:filterActive},null,{limit:limit,skip:startIndex})
+                }else if(filterActive==="false"){
+                    patientData= await model.find({myDoctor: patientId,active:filterActive},null,{limit:limit,skip:startIndex})
+                }else if(filterActive===undefined){
+                    patientData="You have to add the active filter."
+                }
+                console.log("after query",patientData)
+
             }
             }
         if(role==="patient"){
             patientData="You do not have permission"
         }
-        console.log(patientData)
+
 
 
 
@@ -525,7 +503,6 @@ function paginatedResults(model) {
                 res.status(500).json({message: e.message})
             }
         }
-
 
         }
 
