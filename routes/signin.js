@@ -62,7 +62,7 @@ router.post('/login',async (req,res)=>{
                 }if(user["active"]===true){
                     res.status(200).json({accessToken:accessToken, refreshToken:refreshToken,email:req.body.email,firstname:user['firstname'],
                         lastname:user['lastname'],gender:user['gender'],role:user['role'],invitation:user['invitation'],street:user['street'],city:user['city'],state:user['state'],
-                        postcode:user['postcode'],birthday:user['birthday'],age:user['age'],createdDate:user['createdDate'],myDoctor:user['myDoctor']})
+                        postcode:user['postcode'],birthday:user['birthday'],age:user['age'],createdDate:user['createdDate'],myDoctor:user['myDoctor'],daysOfNoSymptom:user["daysOfNoSymptom"]})
                 }
 
             }

@@ -49,6 +49,10 @@ router.post('/', Signin.authenticateToken, async (req, res) => {
                 Date: req.body.Date
             })
             const newDayUpdate = await dailyUpdate.save()
+
+            //Change
+            await Users.updateOne({email: req.user['email']}, {$set: {daysOfNoSymptom:updatedDays }})
+
             res.status(201).json(newDayUpdate)
         }else if (recentRecord.length === 1 && recentRecord[0]["Date"].setHours(0, 0, 0, 0) !== new Date().setHours(0, 0, 0, 0)) {
             console.log("we do not have record today")
@@ -94,6 +98,9 @@ router.post('/', Signin.authenticateToken, async (req, res) => {
                 mask:req.body.mask,
             })
             const newDayUpdate = await dailyUpdate.save()
+            //Change
+            await Users.updateOne({email: req.user['email']}, {$set: {daysOfNoSymptom:updatedDays }})
+
             res.status(201).json(newDayUpdate)
         } else if (recentRecord.length === 1 && recentRecord[0]["Date"].setHours(0, 0, 0, 0) === new Date().setHours(0, 0, 0, 0)) {
             console.log("We have your records today")
@@ -148,7 +155,7 @@ router.post('/', Signin.authenticateToken, async (req, res) => {
 
             })
 
-            //await HealthStatus.deleteOne({_id:recentRecord[0]["_id"]})
+            await Users.updateOne({email: req.user['email']}, {$set: {daysOfNoSymptom:updatedDays }})
 
             console.log("delete")
             const newDayUpdate = await dailyUpdate.save()

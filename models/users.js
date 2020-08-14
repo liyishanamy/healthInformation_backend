@@ -88,6 +88,12 @@ const userSchema = new mongoose.Schema({
         type:String,
         required:false,
 
+    },
+    daysOfNoSymptom: {
+        type:Number,
+        required:true,
+        default:0
+
     }
 
 
