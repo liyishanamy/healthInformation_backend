@@ -35,6 +35,11 @@ const appointmentSchema = new mongoose.Schema({
         type:String,
         required:true,
         default:"Not Done"
+    },
+    testNote:{
+        type:String,
+        required:true,
+        default:""
     }
 });
 

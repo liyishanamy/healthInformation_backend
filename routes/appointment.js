@@ -159,7 +159,7 @@ router.post('/', Signin.authenticateToken, async (req, res) => {
     }
 })
 
-// Doctor Update the test done ---bug -cannot update properly
+// Doctor Update the test done
 router.put('/testDone', Signin.authenticateToken, async (req, res) => {
     const requestUser = req.user["email"]
     const findUser = await Users.find({email: requestUser})
@@ -182,7 +182,7 @@ router.put('/testDone', Signin.authenticateToken, async (req, res) => {
                 if (findPatient.length !== 0) {
                     res.status(200).json({message: "The test has already been done"})
                 } else {
-                    res.status(404).json({message: "Cannot find the patient id"})
+                    res.status(404).json({message: "The user is archived"})
                 }
             }
         } else {
@@ -194,6 +194,43 @@ router.put('/testDone', Signin.authenticateToken, async (req, res) => {
         res.status(403).json({message: "You do not have permission"})
     }
 })
+
+// Doctor Update the test note
+router.put('/testNote', Signin.authenticateToken, async (req, res) => {
+    const requestUser = req.user["email"]
+    const findUser = await Users.find({email: requestUser})
+    const patientList = findUser[0]['patientList']
+    const patientEmail = req.body.patientEmail;
+    const findPatient = await Users.find({email:patientEmail})
+    if(findPatient.length===0){
+        res.status(404).json({message:"Cannot find patient email"})
+    }
+    const patientId = findPatient[0]['_id']
+    const testNote = req.body.testNote;
+    if (findUser[0]['role'] === "doctor") {
+        if (patientList.includes(patientEmail)) {
+            const update = await Appointment.updateOne({"patientId": patientId}, {$set: {"testNote": testNote}})
+            if (update.nModified !== 0) {
+                res.status(200).json({message: "Test note has been updated."})
+            } else {
+                // Did not update any entry
+                const findPatient = await Appointment.find({patientId: patientId})
+                if (findPatient.length !== 0) {
+                    res.status(200).json({message: "The test has already been done"})
+                } else {
+                    res.status(404).json({message: "The user is archived"})
+                }
+            }
+        } else {
+            res.status(404).json({message: "Cannot find your patient id"})
+        }
+
+
+    } else if (findUser[0]['role'] === "patient") {
+        res.status(403).json({message: "You do not have permission"})
+    }
+})
+
 
 // Doctor Update the test result
 router.put('/testResult', Signin.authenticateToken, async (req, res) => {
@@ -229,7 +266,7 @@ router.put('/testResult', Signin.authenticateToken, async (req, res) => {
                     if (findPatient.length !== 0) {
                         res.status(200).json({message: "The test result has already been up to date"})
                     } else {
-                        res.status(404).json({message: "Cannot find the patient id"})
+                        res.status(404).json({message: "The user is archived"})
                     }
                 }
             } else {
