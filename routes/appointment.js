@@ -284,19 +284,26 @@ router.put('/testResult', Signin.authenticateToken, async (req, res) => {
 // Patient can view her own appointment
 router.post('/myAppointment', Signin.authenticateToken, async (req, res) => {
     const requestUser = req.user["email"]
+    var doctorFindId = await Users.find({email:requestUser})
+    var expectDoctorId = doctorFindId[0]["_id"].toString()
     const target = req.body['email']
+    //Find patient's doctor Id
+    const findDoctorId = await Users.find({email:target})
+    var doctorId = findDoctorId[0]["myDoctor"]
+
     //Find doctor record
     const findUser = await Users.find({email: requestUser})
     // Check to see if this user has already booked an appointment
     const bookAppointment = await Appointment.find({patientEmail: target})
     const findPatientList = findUser[0]['patientList']
+    console.log("doctorid",doctorFindId,)
 
 
 
-    if (findUser[0]['role'] === "doctor" && findPatientList.includes(target)) {
+    if (findUser[0]['role'] === "doctor" && doctorId===expectDoctorId) {
         res.status(200).json(bookAppointment)
     }
-    else if(findUser[0]['role'] === "doctor" && !findPatientList.includes(target)) {
+    else if(findUser[0]['role'] === "doctor" && doctorId!==expectDoctorId) {
         res.status(403).json({message: "You do not have permission"})
         //Patient wants to see his own appointment
     } else if (findUser[0]['role'] === 'patient' && requestUser===target) {

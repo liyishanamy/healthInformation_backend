@@ -28,12 +28,19 @@ router.get('/', Signin.authenticateToken, paginatedResults(Users), async (req,re
 // Get total patients that belongs to particular doctor
 router.get('/totalPatients', Signin.authenticateToken, async (req,res)=> {
     const findUsers = await Users.find({"email":req.user["email"]})
+    const doctorId = findUsers[0]["_id"].toString()
+    const findArchived = await Users.find({myDoctor:doctorId,active:false})
     const role = findUsers[0]["role"]
-    console.log(findUsers)
+    // true or false
+    const status = req.query["active"]
     if (role === "doctor"){
         const patients = findUsers[0]["patientList"]
         console.log(patients.length)
-        res.status(200).json({totalPatients:patients.length})
+        if(status==="true"){
+            res.status(200).json({totalPatients:patients.length})
+        }else if(status==="false"){
+            res.status(200).json({totalPatients:findArchived.length})
+        }
     }if (role==="patient"){
         res.status(403).json({message:"You don't have permission"})
     }
@@ -348,14 +355,15 @@ router.post('/getStatus',Signin.authenticateToken, async (req,res)=>{
     const patientEmail = req.body.patientEmail
     const findUser =  await Users.find({email:email})
     const findPatient= await Users.find({email:patientEmail})
-    console.log("findPatient",findUser)
+    const doctorId = findUser[0]["_id"].toString()
+    const expectDoctorId  =findPatient[0]["myDoctor"]
     let patients = findUser[0]["patientList"]
     if(findPatient.length===0){
         res.status(404).json({message:"Cannot find the patient"})
     }
     else{
         if(findUser[0]["role"]==="doctor" ){
-            if(patients.includes(patientEmail)){
+            if(doctorId===expectDoctorId){
                 // have permission
                 res.status(200).json({"active":findPatient[0]["active"]})
             }else{

@@ -38,9 +38,13 @@ router.post('/', Signin.authenticateToken, async (req, res) => {
     const requestPerson = req.user['email']
     const findUser = await Users.find({"email": bodyEmail})
     const request = await Users.find({"email": requestPerson})
+
+
+
     const requestPersonRole = request[0]['role']
     if (requestPersonRole === "doctor") {
-        const patientList = request[0]['patientList']
+        const doctorId = findUser[0]["myDoctor"]
+        const expectDoctorId = request[0]["_id"].toString()
         if (bodyEmail === requestPerson) {
             // Doctor wants to see his own profile
             res.status(200).json({
@@ -61,7 +65,7 @@ router.post('/', Signin.authenticateToken, async (req, res) => {
 
             })
 
-        } else if (bodyEmail !== requestPerson && patientList.includes(bodyEmail)) {
+        } else if (bodyEmail !== requestPerson && expectDoctorId===doctorId) {
             // The target user is one of the doctors' patients
             res.status(200).json({
                 firstname: findUser[0]['firstname'],
