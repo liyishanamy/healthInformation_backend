@@ -7,6 +7,14 @@ const Invitation = require('../models/invitations')
 ObjectId = require('mongodb').ObjectID
 var mongoose = require('mongoose');
 
+router.get('/getPatientList',Signin.authenticateToken,async (req,res)=>{
+    const findUsers = await Users.find({"email":req.user["email"]})
+    if(findUsers[0]["role"]==="doctor"){
+        res.status(200).json(findUsers[0]["patientList"])
+    } else if(findUsers[0]["role"]==="patient"){
+        res.status(403).json({message:"You do not have permission"})
+    }
+})
 router.get('/', Signin.authenticateToken, paginatedResults(Users), async (req,res)=> {
     try {
 

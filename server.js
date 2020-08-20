@@ -36,6 +36,9 @@ app.use('/resetPassword',resetPassword)
 const signin = require('./routes/signin')
 app.use('/',signin)
 
+//Online Users
+const online = require('./routes/users')
+app.use('/online',online)
 
 // GetprofileInfo
 const userProfile = require('./routes/userProfile')

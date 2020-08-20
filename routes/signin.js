@@ -3,6 +3,8 @@ const router = express.Router()
 const bcrypt =require('bcrypt')
 const Users = require('../models/users')
 const jwt = require('jsonwebtoken')
+const Online=require('../models/onlineUsers')
+
 require('dotenv').config()
 const app=express()
 app.use(express.json())
@@ -43,13 +45,25 @@ router.post('/login',async (req,res)=>{
         if(await bcrypt.compare(req.body.password,user[0].password)){
             const accessToken = generateAccessToken(useremail)
             // Refresh token also expires
-            const refreshToken = jwt.sign(useremail,process.env.REFRESH_TOKEN_SECRET,{expiresIn: '100000s'})
+            const refreshToken = jwt.sign(useremail,process.env.REFRESH_TOKEN_SECRET,{expiresIn: '10000s'})
             refreshTokens.push(refreshToken)
             // Get the user information
             const findUser = await Users.find({"email":req.body.email})
-            console.log(findUser)
             const user = findUser[0]
+
+            const findIfExist =await Online.find({email:user['email']})
+            console.log("finduser",findIfExist)
             if(user['role']==='doctor'){
+                if(findIfExist.length===0){
+                    const online = new Online({
+                        myDoctor:user["_id"],
+                        firstname: user['firstname'],
+                        lastname: user['lastname'],
+                        email:user['email'],
+                    })
+                    await online.save();
+                }
+
                 res.status(200).json({accessToken:accessToken, refreshToken:refreshToken,email:req.body.email,firstname:user['firstname'],
                 lastname:user['lastname'],gender:user['gender'],role:user['role'],street:user['street'],city:user['city'],state:user['state'],
                 postcode:user['postcode'],birthday:user['birthday'],age:user['age'],patientList:user['patientList'],createdDate:user['createdDate']})
@@ -57,19 +71,31 @@ router.post('/login',async (req,res)=>{
             else if(user['role'] ==='patient'){
                 console.log("hi",user["active"])
                 if(user["active"]===false){
-                    console.log("hiii")
                     res.status(403).json({'message':'You have been archived, Please contact your doctor or admin to activate you.'});
                 }if(user["active"]===true){
+                    if(findIfExist.length===0){
+                        const online = new Online({
+                            myDoctor:user['myDoctor'],
+                            firstname: user['firstname'],
+                            lastname: user['lastname'],
+                            email: user['email'],
+                        })
+                        await online.save();
+                    }
+
                     res.status(200).json({accessToken:accessToken, refreshToken:refreshToken,email:req.body.email,firstname:user['firstname'],
                         lastname:user['lastname'],gender:user['gender'],role:user['role'],invitation:user['invitation'],street:user['street'],city:user['city'],state:user['state'],
                         postcode:user['postcode'],birthday:user['birthday'],age:user['age'],createdDate:user['createdDate'],myDoctor:user['myDoctor'],daysOfNoSymptom:user["daysOfNoSymptom"]})
                 }
-
             }
+
+
+
         } else {
             res.status(401).json({'message':'Authentication failed'});
         }
     }catch(e){
+        console.log("e",e)
         res.status(500).json(e)
 
     }
