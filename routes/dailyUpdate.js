@@ -21,11 +21,8 @@ router.post('/', Signin.authenticateToken, async (req, res) => {
     }
 
     if (requestPerson===req.body.email) {
-
-        console.log("first time")
         // Check last health status record
         var recentRecord = await HealthStatus.find({patientEmail: req.body.email}).sort({"Date": -1}).limit(1)
-        console.log("recentRecord",recentRecord)
 
         if (recentRecord.length === 0) {
             var updatedDays;
@@ -52,16 +49,13 @@ router.post('/', Signin.authenticateToken, async (req, res) => {
 
             //Change
             await Users.updateOne({email: req.user['email']}, {$set: {daysOfNoSymptom:updatedDays }})
-
             res.status(201).json(newDayUpdate)
         }else if (recentRecord.length === 1 && recentRecord[0]["Date"].setHours(0, 0, 0, 0) !== new Date().setHours(0, 0, 0, 0)) {
-            console.log("we do not have record today")
-            console.log(recentRecord)
             var updatedDays;
             if (req.body.temperature < 37 && req.body.symptom.length === 0) {
                 // get better
                 updatedDays = recentRecord[0]['daysOfNoSymptom'] + 1
-                if(updatedDays>=2){
+                if(updatedDays>=14){
                     const filterPatient = await patientsNotification.find({userEmail:req.body.email})
                     const notification = new patientsNotification({
                         userEmail: req.body.email,
@@ -69,7 +63,6 @@ router.post('/', Signin.authenticateToken, async (req, res) => {
                         registrationDate:findUsers[0]['createdDate'],
                         noSymptomsDays:updatedDays
                     })
-                    console.log("here",filterPatient)
                     if(filterPatient.length!==0){
                         await patientsNotification.deleteOne({"userEmail": req.body.email})
                         await notification.save()
@@ -111,7 +104,6 @@ router.post('/', Signin.authenticateToken, async (req, res) => {
             if (req.body.temperature > 37 || req.body.symptom.length !== 0 ) {
                 // get worse
                 updatedDays = 0
-
                 await patientsNotification.deleteOne({"userEmail": req.body.email})
 
             } else {
@@ -156,8 +148,6 @@ router.post('/', Signin.authenticateToken, async (req, res) => {
             })
 
             await Users.updateOne({email: req.user['email']}, {$set: {daysOfNoSymptom:updatedDays }})
-
-            console.log("delete")
             const newDayUpdate = await dailyUpdate.save()
             res.status(201).json(newDayUpdate)
         }
@@ -186,14 +176,11 @@ router.get('/stats', Signin.authenticateToken, async (req, res) => {
     // Doctor case
     if (requestPerson[0]['role'] === 'doctor') {
         var totalPatients = requestPerson[0]['patientList'].length
-        console.log("totalPatients",totalPatients)
         //Query data on single data
         if (date_from !== undefined && date_to !== undefined) {
             const findPatients = requestPerson[0]['patientList']
             const findDate = await HealthStatus.find({Date: {$gte: date_from, $lt: date_to},patientEmail:{$in : findPatients}})
-            console.log("findDate",findDate)
             for (var i = 0; i < findDate.length; i++) {
-                console.log(i,findDate[i])
                 if (findDate[i].symptom.length !== 0 || findDate[i].temperature > 37) {
                     gettingWorse += 1
                 } else if (findDate[i].symptom.length === 0 && findDate[i].temperature < 37) {
@@ -216,14 +203,10 @@ router.get('/stats', Signin.authenticateToken, async (req, res) => {
 })
 router.post('/temperature/', Signin.authenticateToken,async (req,res)=>{
     const findPatientEmail = req.body.email
-    const patientRecord = await Users.find({"email":findPatientEmail})
     var requestPerson = await Users.find({"email": req.user["email"]}, null, {limit: 1})
     var patient = await HealthStatus.aggregate([{$match:{patientEmail:findPatientEmail}},{$project:{Date:1,temperature:1}}])
-
     if(requestPerson[0]["role"]==="doctor"){
-
         res.status(200).json(patient)
-
     }else if (requestPerson[0]["role"]==="patient"){
         if(findPatientEmail===req.user["email"]){
             console.log(patient)
@@ -237,7 +220,6 @@ router.post('/temperature/', Signin.authenticateToken,async (req,res)=>{
 })
 router.post('/symptom/', Signin.authenticateToken,async (req,res)=>{
     const findPatientEmail = req.body.email
-    const patientRecord = await Users.find({"email":findPatientEmail})
     var requestPerson = await Users.find({"email": req.user["email"]}, null, {limit: 1})
     var patient = await HealthStatus.aggregate([{$match:{patientEmail:findPatientEmail}},{$project:{Date:1,symptom:1}}])
 
@@ -262,9 +244,7 @@ router.post('/symptom/count', Signin.authenticateToken,async (req,res)=>{
     let cough = 0
     let runningNose = 0
     let diarrhea = 0
-    var requestPerson = await Users.find({"email": req.user["email"]}, null, {limit: 1})
     var findPatientRecord = await HealthStatus.find({patientEmail:findPatientEmail})
-    console.log("findPatientRecord",findPatientRecord)
     for (var i=0;i<findPatientRecord.length;i++){
         let symptomsList = findPatientRecord[i]['symptom']
         if(symptomsList.length!==0){
@@ -293,10 +273,8 @@ router.post('/symptom/count', Signin.authenticateToken,async (req,res)=>{
 })
 router.post('/daysHavingNoSymptoms',Signin.authenticateToken, async (req,res)=>{
     const findPatientEmail = req.body.email
-    const patientRecord = await Users.find({"email":findPatientEmail})
     var requestPerson = await Users.find({"email": req.user["email"]}, null, {limit: 1})
     var recentRecord = await HealthStatus.find({patientEmail: req.body.email}).sort({"Date": -1}).limit(1)
-    console.log("recentRecord",recentRecord)
 
     if(requestPerson[0]["role"]==="doctor"){
         if(recentRecord.length===0){
@@ -354,9 +332,6 @@ router.post('/patientHealth', Signin.authenticateToken, async (req, res) => {
     if (requestPerson[0]['role'] === 'doctor') {
         var patientList = requestPerson[0]['patientList']
         console.log(patientList.includes(postEmail))
-
-
-
         if (patientList.includes(postEmail)) {
             var date_from = req.query['from'];
             var date_to = req.query['to'];

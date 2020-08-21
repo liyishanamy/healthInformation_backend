@@ -11,14 +11,10 @@ ObjectId = require('mongodb').ObjectID
 //Given a date, return all the available time period back.
 router.post('/availableDate',Signin.authenticateToken,async (req, res)=>{
     const queryDate = req.body['date']
-    console.log(req.query)
     if (!queryDate){
         res.status(400).json({message:"You must select an appointment date"})
     }else {
-        console.log(new Date(queryDate).setHours(0, 0, 0, 0))
         const findDateAvaliability = await Timeslot.find({date: new Date(queryDate).setHours(0, 0, 0, 0)})
-        //const findDateAvaliability = await Timeslot.find({date: queryDate})
-        console.log("findDateAvaliability", findDateAvaliability)
         if (findDateAvaliability.length===0) {
             res.status(200).json({results: [{"hour": 9, "minute": 0},
                     {"hour": 9, "minute": 30},{"hour": 10, "minute": 0},
@@ -30,13 +26,9 @@ router.post('/availableDate',Signin.authenticateToken,async (req, res)=>{
                     {"hour": 16, "minute": 30},{"hour": 17, "minute": 0},
                 ]
             })
-            console.log("Not found")
-
         }else{
             const timeslot = findDateAvaliability[0]['availableTimeSlot']
-            console.log(timeslot)
             res.status(200).json({results:timeslot})
-            console.log("found")
         }
     }
 
@@ -65,7 +57,6 @@ router.post('/', Signin.authenticateToken, async (req, res) => {
             // find the date record
             const findDate = await Timeslot.find({date: new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate())})
             if (findDate.length === 0) {
-                console.log("test point", new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate()))
                 const timeslot = new Timeslot({
                     date: new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate()),
                     timeSlotTaken: [
@@ -104,9 +95,7 @@ router.post('/', Signin.authenticateToken, async (req, res) => {
             } else if (findDate.length === 1) {// Someone has already booked an appointment on that particular date
                 // Check to see if the chosen timeslot has been picked by other people
                 const findAvailability = findDate[0]["availableTimeSlot"]
-                console.log(findAvailability)
                 const available = findAvailability.find(element => element.hour === startDate.getHours() && element.minute === startDate.getMinutes())
-                console.log("available", available)
                 if (!available) {
                     // if not found
                     res.status(400).json({message: "Sorry, this time period has either been already booked or it is unavailable"})
@@ -295,10 +284,6 @@ router.post('/myAppointment', Signin.authenticateToken, async (req, res) => {
     const findUser = await Users.find({email: requestUser})
     // Check to see if this user has already booked an appointment
     const bookAppointment = await Appointment.find({patientEmail: target})
-    const findPatientList = findUser[0]['patientList']
-    console.log("doctorid",doctorFindId,)
-
-
 
     if (findUser[0]['role'] === "doctor" && doctorId===expectDoctorId) {
         res.status(200).json(bookAppointment)
@@ -323,14 +308,8 @@ router.post('/myAppointment', Signin.authenticateToken, async (req, res) => {
 router.get('/allPatients', Signin.authenticateToken,paginatedResults(Appointment), async (req, res) => {
     const requestUser = req.user["email"]
     const findUser = await Users.find({email: requestUser})
-    const doctorId = findUser[0]['_id']
-    const date_from = req.query.from
-    const date_to = req.query.to
 
     if (findUser[0]['role'] === "doctor") {
-       // const findPatients  =await Appointment.find({appointmentStart: {$gte: date_from, $lt: date_to},myDoctorId: doctorId})
-        //console.log(findPatients)
-
         res.status(200).json(res.patientAppointmentData)
     } else if (findUser[0]['role'] === "patient") {
         res.status(403).json({message: "You do not have permission"})
@@ -354,7 +333,6 @@ router.delete('/', Signin.authenticateToken, async (req, res) => {
             const appointmentDate = bookAppointment[0]['appointmentTime'].startTime
             const appointmentHour = appointmentDate.getHours()
             const appointmentMinutes = appointmentDate.getMinutes()
-            console.log("date", appointmentDate, appointmentHour, appointmentMinutes)
             await Timeslot.updateOne({date: new Date(appointmentDate.getFullYear(), appointmentDate.getMonth(), appointmentDate.getDate())}, {
                 $pull: {
                     timeSlotTaken: {
@@ -429,8 +407,6 @@ function paginatedResults(model) {
         const date_from = req.query.from
         const date_to = req.query.to
 
-        console.log("page",page)
-        console.log("limit",limit)
         const startIndex = (page - 1) * limit
         const endIndex = page * limit
 
@@ -476,7 +452,6 @@ function paginatedResults(model) {
             res.status(500).json({message: e.message})
         }
     }
-
 
 }
 

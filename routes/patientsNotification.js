@@ -10,7 +10,6 @@ ObjectId = require('mongodb').ObjectID
 router.get('/', Signin.authenticateToken, async (req,res)=> {
     const requestPerson = await Users.find({email:req.user['email']})
     var doctorId = requestPerson[0]["_id"]
-    console.log("doctorid",doctorId)
     if(requestPerson[0]["role"]==="doctor"){
         var patientNotification = await patientNotification.find({myDoctorId:doctorId})
         res.status(200).json(patientNotification)

@@ -4,7 +4,6 @@ const bcrypt =require('bcrypt')
 const Users = require('../models/users')
 const jwt = require('jsonwebtoken')
 const Online=require('../models/onlineUsers')
-
 require('dotenv').config()
 const app=express()
 app.use(express.json())
@@ -12,16 +11,13 @@ let refreshTokens = []
 //Generate renew token using refresh token
 router.post('/token',(req,res)=>{
     const refreshToken = req.body.token
-
     if(refreshToken==null) return res.send(401)
     if(!refreshTokens.includes(refreshToken))return res.status(403).json({message:"Forbidden"})
     jwt.verify(refreshToken,process.env.REFRESH_TOKEN_SECRET,(err,user)=>{
         if (err)return res.status(403).json({message:"The refresh token expires"})
         const accessToken=generateAccessToken({email:user.email})
         res.status(200).json({accessToken:accessToken})
-        console.log("userrrr",user)
         req.user = user
-
     })
 })
 
@@ -31,17 +27,13 @@ router.delete('/logout', authenticateToken,(req,res)=>{
 })
 
 
-
 router.post('/login',async (req,res)=>{
-   // const user = Users.find(user=>user.email=req.body.email)
    const user = await Users.find({email:req.body.email},null,{limit:1})
-   // console.log("login",user[0]["active"],typeof user[0]["active"])
     if(user.length===0){
         return res.status(401).json({'message':'Authentication failed'})
     }
     const useremail={email:req.body.email}
     try{
-
         if(await bcrypt.compare(req.body.password,user[0].password)){
             const accessToken = generateAccessToken(useremail)
             // Refresh token also expires
@@ -52,7 +44,6 @@ router.post('/login',async (req,res)=>{
             const user = findUser[0]
 
             const findIfExist =await Online.find({email:user['email']})
-            console.log("finduser",findIfExist)
             if(user['role']==='doctor'){
                 if(findIfExist.length===0){
                     const online = new Online({
@@ -63,13 +54,11 @@ router.post('/login',async (req,res)=>{
                     })
                     await online.save();
                 }
-
                 res.status(200).json({accessToken:accessToken, refreshToken:refreshToken,email:req.body.email,firstname:user['firstname'],
                 lastname:user['lastname'],gender:user['gender'],role:user['role'],street:user['street'],city:user['city'],state:user['state'],
                 postcode:user['postcode'],birthday:user['birthday'],age:user['age'],patientList:user['patientList'],createdDate:user['createdDate']})
             }
             else if(user['role'] ==='patient'){
-                console.log("hi",user["active"])
                 if(user["active"]===false){
                     res.status(403).json({'message':'You have been archived, Please contact your doctor or admin to activate you.'});
                 }if(user["active"]===true){
@@ -82,20 +71,15 @@ router.post('/login',async (req,res)=>{
                         })
                         await online.save();
                     }
-
                     res.status(200).json({accessToken:accessToken, refreshToken:refreshToken,email:req.body.email,firstname:user['firstname'],
                         lastname:user['lastname'],gender:user['gender'],role:user['role'],invitation:user['invitation'],street:user['street'],city:user['city'],state:user['state'],
                         postcode:user['postcode'],birthday:user['birthday'],age:user['age'],createdDate:user['createdDate'],myDoctor:user['myDoctor'],daysOfNoSymptom:user["daysOfNoSymptom"]})
                 }
             }
-
-
-
         } else {
             res.status(401).json({'message':'Authentication failed'});
         }
     }catch(e){
-        console.log("e",e)
         res.status(500).json(e)
 
     }
@@ -107,7 +91,6 @@ async function authenticateAuthHeader({username,password}) {
     if(user.length===0){
         userMsg = "Authentication failure"
     }else{
-        console.log("user",user)
         var userMsg;
         if (await bcrypt.compare(password,user[0].password)) {
             userMsg = "Authenticated"
@@ -125,14 +108,9 @@ function generateAccessToken(user){
 }
 
 async function authenticateToken(req, res, next) {
-    console.log("authenticated")
     const authHeader = req.headers['authorization']
-
-
-    console.log("authHeader", authHeader)
     const token = authHeader && authHeader.split(' ')[1]
     const header = authHeader.split(' ')[0]
-
     if (token == null) return res.status(401).json({message: "Unauthorized"})
     if (header === "Bearer") { // access token
         jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, user) => {
@@ -157,9 +135,6 @@ async function authenticateToken(req, res, next) {
         }catch (e) {
             console.log(e)
         }
-
-
-
     }
 }
 

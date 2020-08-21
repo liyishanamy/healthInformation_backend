@@ -6,15 +6,12 @@ const security = require('../models/securityQuestions')
 // Change the security answers
 router.put('/',Signin.authenticateToken,async (req,res)=>{
     const findUsers = await security.find({userEmail: req.user["email"]}, null, {limit: 1})
-    console.log("findUsers",findUsers)
-
     const putBody = req.body.email
     if (putBody === req.user['email']) {
         var conditions = {userEmail: req.user['email']}
         security.update(conditions, req.body.update)
             .then(doc => {
                 if (!doc) {
-
                     return res.status(404).end()
                 }
                 return res.status(200).json({"message": "update your security questions successfully!"})
@@ -35,7 +32,6 @@ router.post('/',Signin.authenticateToken,async (req,res)=>{
     })
     const requestPerson = findUsers[0]["email"]
     const findRecord = await security.find({"userEmail": questions.userEmail})
-    console.log(findRecord)
     if (findRecord.length!==0){
         res.status(400).json({message:"Security questions has already been set"})
     }else{
@@ -52,14 +48,8 @@ router.post('/',Signin.authenticateToken,async (req,res)=>{
 })
 // Get the security questions
 router.post('/getQuestions',async (req,res)=>{
-    console.log("amy",req.body)
     const userEmail = req.body.email
-    console.log(userEmail)
     var findUsers =  await security.find({userEmail:userEmail})
-    const test = await security.find()
-    console.log("findUser",test)
-    console.log(findUsers)
-
     if(findUsers.length===1){
         res.status(200).json({question1: findUsers[0].question1["question_1"],question2: findUsers[0].question2["question_2"],
             question3: findUsers[0].question3["question_3"]})
@@ -74,7 +64,6 @@ router.post('/getAnswers',Signin.authenticateToken,async (req,res)=>{
     const requestUser = req.user["email"]
     const userEmail = req.body.email
     var findUsers =  await security.find({userEmail:userEmail})
-
     if(userEmail===requestUser){
         if(findUsers.length===1){
             res.status(200).json({answer1: findUsers[0].question1["answer_1"],answer2: findUsers[0].question2["answer_2"],
@@ -86,22 +75,13 @@ router.post('/getAnswers',Signin.authenticateToken,async (req,res)=>{
     }else{
         res.status(403).json({message:"You do not have permission"})
     }
-
-
-
-
-
-
-
 })
 
 // answer the security questions
 router.post('/authenticate',async (req,res)=>{
     // You must get authentication(email/all security questions to reset the password)
     var userEmail = req.body.email
-
     var findSecurityQuestions = await security.find({"userEmail":userEmail})
-    console.log("findSecurityQuestions",findSecurityQuestions)
     if(findSecurityQuestions.length===0){
         res.status(403).json({message:"Failed to authenticate"})
     }else{
@@ -121,11 +101,6 @@ router.post('/authenticate',async (req,res)=>{
             res.status(401).json({message:"Authentication failed"})
         }
     }
-
-
-
-
-
 
 })
 module.exports = router;

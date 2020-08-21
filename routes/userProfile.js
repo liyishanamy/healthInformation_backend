@@ -4,7 +4,6 @@ const Users = require('../models/users')
 const Signin = require('./signin')
 var fs = require('fs');
 var multer = require('multer')
-//var upload=multer({dest:'uploads/'})
 var ProfileImage = require('../models/profileImage')
 var path = require('path')
 var hash = require('object-hash')
@@ -38,9 +37,6 @@ router.post('/', Signin.authenticateToken, async (req, res) => {
     const requestPerson = req.user['email']
     const findUser = await Users.find({"email": bodyEmail})
     const request = await Users.find({"email": requestPerson})
-
-
-
     const requestPersonRole = request[0]['role']
     if (requestPersonRole === "doctor") {
         const doctorId = findUser[0]["myDoctor"]
@@ -116,9 +112,7 @@ router.post('/', Signin.authenticateToken, async (req, res) => {
 
 //Update the profiles
 router.put('/', Signin.authenticateToken, async (req, res) => {
-    console.log("request user",req.user)
     const findUsers = await Users.find({"email": req.user["email"]}, null, {limit: 1})
-    console.log("findUsers",findUsers)
     const requestPerson = findUsers[0]["_id"]
     const putBody = req.body.email
     if (putBody === req.user['email']) {
@@ -138,10 +132,6 @@ router.put('/', Signin.authenticateToken, async (req, res) => {
 
 // Upload image
 router.post("/profileImage", Signin.authenticateToken, upload.single('image'), async (req, res) => {
-    console.log("file",req.file)
-    //var hashImage = hash.sha1(req.file)
-    console.log(req.body.email)
-    //console.log(hashImage)
     const profileImages = new ProfileImage({
         userEmail: req.body.email,
         image: req.file.path.substring(6),
@@ -154,7 +144,6 @@ router.post("/profileImage", Signin.authenticateToken, upload.single('image'), a
         profileImages
             .save()
             .then(result => {
-                console.log(result)
                 if (!result) {
                     return res.status(404).end()
                 }
@@ -183,20 +172,16 @@ router.post("/profileImage", Signin.authenticateToken, upload.single('image'), a
 router.post('/getImage', Signin.authenticateToken, async (req, res) => {
     const userEmail = req.body['userEmail']
     const result = await ProfileImage.find({userEmail: userEmail})
-    console.log(userEmail,result)
     if (result.length === 0) {
         res.status(404).json({message: "Cannot find the profile image"})
     } else {
-        console.log("C:\\backup\\".replace(/\/\//g, "/"))
         const path = result[0]['image']
-        const afterRegex = path.replace(/\/\//g, "/")
         res.status(200).json({url: "http://localhost:3000/images/" + result[0]['imageName']})
     }
 
 });
 // Change a profile picture
 router.put('/changeProfileImage', Signin.authenticateToken, upload.single('image'), async (req, res) => {
-    console.log(req.file)
     ProfileImage.updateOne({userEmail: req.user['email']}, {$set: {image: req.file.path,imageName:req.file.filename}})
         .exec()
         .then(result => {
@@ -209,7 +194,6 @@ router.put('/changeProfileImage', Signin.authenticateToken, upload.single('image
             });
         })
         .catch(err => {
-            console.log(err);
             res.status(500).json({
                 error: err
             });

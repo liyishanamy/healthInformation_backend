@@ -13,7 +13,6 @@ router.get('/getRecentRoute',Signin.authenticateToken,async (req, res)=>{
         const findRoute = await HealthStatus.aggregate([{$match: {patientEmail: {$in: findUsers[0]['patientList']}}},
             { $project : { placesFrom:{ $ifNull: ["$placesFrom","Unspecified"]}, placesTo : { $ifNull: ["$placesTo","Unspecified"]},
                     mask : 1, Date: 1}} ])
-        //const res = findRoute({})
         res.status(200).json(findRoute)
     }
     else if(role==="patient"){

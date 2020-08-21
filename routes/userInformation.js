@@ -365,7 +365,6 @@ router.post('/getStatus',Signin.authenticateToken, async (req,res)=>{
     const findPatient= await Users.find({email:patientEmail})
     const doctorId = findUser[0]["_id"].toString()
     const expectDoctorId  =findPatient[0]["myDoctor"]
-    let patients = findUser[0]["patientList"]
     if(findPatient.length===0){
         res.status(404).json({message:"Cannot find the patient"})
     }
@@ -425,7 +424,6 @@ async function getUsers(req,res,next) {
     let user;
     try {
         user = await Users.findById(req.params.id)
-        console.log(user)
         if (user == null) {
             return res.status(404).json({message: "cannot find user"})
         }
@@ -443,8 +441,6 @@ function paginatedResults(model) {
     return async (req, res, next) => {
         const page = parseInt(req.query.page)
         const limit = parseInt(req.query.limit)
-        console.log(page)
-        console.log(limit)
         const startIndex = (page - 1) * limit
         const endIndex = page * limit
 
@@ -474,11 +470,8 @@ function paginatedResults(model) {
         if (role === "doctor") {
             const patients = findUsers[0]["patientList"]
             if (filterGender !== undefined) {
-
                 if (filterGender === '0') {
-
                     patientData= await model.find({email: {$in: patients},gender:"female"},null,{limit:limit,skip:startIndex})
-
                 } else if (filterGender === '1') {
                         // gender = male
                     patientData= await model.find({email: {$in: patients},gender:"male"},null,{limit:limit,skip:startIndex})
@@ -490,9 +483,6 @@ function paginatedResults(model) {
                 }
 
             else {// If no query is specified
-                const find=await model.find({myDoctor: patientId,active:filterActive},null,{limit:limit,skip:startIndex})
-                console.log("query",find,filterActive,typeof filterActive)
-
                 if(filterActive==="true"){
                     patientData= await model.find({email: {$in: patients},active:filterActive},null,{limit:limit,skip:startIndex})
                 }else if(filterActive==="false"){
@@ -500,17 +490,12 @@ function paginatedResults(model) {
                 }else if(filterActive===undefined){
                     patientData="You have to add the active filter."
                 }
-                console.log("after query",patientData)
 
             }
             }
         if(role==="patient"){
             patientData="You do not have permission"
         }
-
-
-
-
             //200 case
             try {
                 res.patientData= patientData

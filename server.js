@@ -5,9 +5,6 @@ require('dotenv').config()
 
 const mongoose =require('mongoose')
 const cors = require('cors')
-
-
-
 mongoose.connect(process.env.DATABASE_URL,{useUnifiedTopology:true})
 const db = mongoose.connection
 
@@ -64,7 +61,6 @@ app.use('/security-questions',securityQuestions)
 // Patients who have no symptoms for 14 days should get notification to get retest
 const patientDays = require("./routes/patientsNotification")
 app.use('/notification',patientDays)
-
 
 // Patients can book appointment of retest once their health status get better
 const appointment = require("./routes/appointment")

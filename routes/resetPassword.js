@@ -19,7 +19,6 @@ const limiter = rateLimit({
 router.put('/', limiter,Signin.authenticateToken, async (req,res)=>{
     const user = req.user['email'];
     const hashedPassword = await bcrypt.hash(req.body.password,10)
-
     if(req.body.password!==req.body.confirmedPassword){
         res.status(400).json({message:"The password does not match up"})
     }else{
